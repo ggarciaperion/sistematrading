@@ -734,14 +734,17 @@ def generar_idop(conn, retries=5):
                 c.execute("UPDATE operation_seq SET last_num = ? WHERE id = 1", (new_num,))
                 conn.commit()
                 return f"EXP-{new_num:04d}"
-            except sqlite3.OperationalError as op_err:
+            except sqlite3.OperationalError:
                 # DB locked o similar; deshacer e intentar de nuevo con backoff
                 try:
                     conn.rollback()
                 except Exception:
                     pass
-                # Small backoff (exponencial lineal)
-                time.sleep(0.05 * (attempt + 1))
+                # Exponential backoff
+                time.sleep(0.05 * (2 ** attempt))
+                if attempt == retries - 1:
+                    # Last attempt failed, log and fall through to fallback
+                    print(f"Warning: operation_seq retry exhausted after {retries} attempts, using fallback")
                 continue
             except Exception:
                 try:
@@ -749,8 +752,9 @@ def generar_idop(conn, retries=5):
                 except Exception:
                     pass
                 raise
-    except Exception:
+    except Exception as e:
         # Si algo no funcionó con operation_seq, continuamos con fallback abajo
+        print(f"Warning: operation_seq atomic generation failed ({e}), using fallback")
         try:
             conn.rollback()
         except Exception:
