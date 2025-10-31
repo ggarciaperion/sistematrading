@@ -91,7 +91,7 @@ def crear_usuario(db_path, username, password, role, dni, email, status="Activo"
     password_hash = generate_password_hash(password)
     # Insertamos también la última contraseña en texto plano en la columna last_plain_password
     c.execute(
-        "INSERT INTO users (username, password, role, dni, email, status, last_plain_password) VALUES (?, ?, ?, ?, ?, ?, ?)" ,
+        "INSERT INTO users (username, password, role, dni, email, status, last_plain_password) VALUES (?, ?, ?, ?, ?, ?, ?)",
         (username, password_hash, role, dni, email, status, password)
     )
     conn.commit()
@@ -394,7 +394,7 @@ def init_db():
         try:
             now_ts = now_peru().strftime('%Y-%m-%d %H:%M:%S')
             c.execute(
-                "INSERT INTO users (username, password, role, status, created_at) VALUES (?, ?, ?, ?, ?)" ,
+                "INSERT INTO users (username, password, role, status, created_at) VALUES (?, ?, ?, ?, ?)",
                 ('admin', generate_password_hash('admin123'), 'Master', 'Activo', now_ts)
             )
         except sqlite3.IntegrityError:
@@ -739,7 +739,7 @@ def generar_idop(conn, retries=5):
                     conn.rollback()
                 except Exception:
                     pass
-                # Small backoff (exponencial lineal)
+                # Small linear backoff
                 time.sleep(0.05 * (attempt + 1))
                 continue
             except Exception:
