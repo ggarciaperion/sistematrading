@@ -720,6 +720,12 @@ def generar_idop(conn, retries=5):
     try:
         for attempt in range(retries):
             try:
+                # Asegurar que no hay transacción pendiente antes de iniciar una nueva
+                if conn.in_transaction:
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
                 # Iniciar transacción inmediata para bloquear escritura y asegurar atomicidad
                 conn.execute('BEGIN IMMEDIATE')
                 c = conn.cursor()
@@ -735,12 +741,12 @@ def generar_idop(conn, retries=5):
                 conn.commit()
                 return f"EXP-{new_num:04d}"
             except sqlite3.OperationalError as op_err:
-                # DB locked o similar; deshacer e intentar de nuevo con backoff
+                # DB locked o similar; deshacer e intentar de nuevo con backoff lineal
                 try:
                     conn.rollback()
                 except Exception:
                     pass
-                # Small backoff (exponencial lineal)
+                # Linear backoff: aumenta gradualmente el tiempo de espera
                 time.sleep(0.05 * (attempt + 1))
                 continue
             except Exception:
