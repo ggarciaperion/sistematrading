@@ -1,0 +1,634 @@
+{% extends "base.html" %}
+{% block title %}Posición - Sistema de Trading{% endblock %}
+{% block head %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<style>
+/* QoriCash Visual Style for Posición */
+
+body, .main-content {
+    background: #fff !important;
+    color: #181d22 !important;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+.card, .table-container {
+    background: #f9f9fb;
+    border-radius: 1.08rem;
+    box-shadow: 0 2px 8px rgba(185,160,56,0.07);
+    border: 2px solid #ececec;
+}
+.card-header {
+    background: #f3f3f3 !important;
+    color: #b9a038 !important;
+    font-weight: 700;
+    font-size: 1.2rem;
+    border-radius: 1.08rem 1.08rem 0 0;
+}
+.bg-primary { background: #b9a038 !important; color: #fff !important; }
+.bg-success { background: #43a047 !important; color: #fff !important; }
+
+.posicion-header-title {
+    color: #b9a038;
+    font-size: 2rem;
+    font-weight: bold;
+    letter-spacing: .5px;
+}
+.posicion-diff {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #181d22;
+}
+.negativo { color: #c82333 !important; }
+.positivo { color: #43a047 !important; }
+
+/* Tablas */
+.table-posicion {
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 2px 12px rgba(185,160,56,0.09);
+}
+/* Estilos para controles de posición */
+.posicion-controls {
+    background: #f9f9fb;
+    padding: 1rem;
+    border-radius: 1.08rem;
+    box-shadow: 0 2px 8px rgba(185,160,56,0.07);
+    border: 2px solid #ececec;
+}
+
+.utilidad-dia-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px solid #dee2e6 !important;
+}
+
+.utilidad-dia-card .positivo {
+    color: #43a047 !important;
+}
+
+/* Toasts */
+.toast {
+    background: white;
+    border: 2px solid #b9a038;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(185, 160, 56, 0.2);
+}
+
+.toast-header {
+    border-radius: 0.75rem 0.75rem 0 0 !important;
+}
+
+/* Indicador visual de actualización en tiempo real */
+.actualizando::after {
+    content: " 🔄 Actualizando...";
+    color: #b9a038;
+    font-size: 0.8rem;
+    font-weight: normal;
+}
+
+/* Estados de carga */
+.saving {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading {
+    position: relative;
+}
+
+.loading::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 10;
+    border-radius: 1rem;
+}
+
+.loading::after {
+    content: "🔄 Actualizando...";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #b9a038;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    z-index: 11;
+    font-weight: bold;
+}
+
+.utilidad-dia-card .negativo {
+    color: #c82333 !important;
+}
+
+/* Mejoras de rendimiento para tablas */
+.table-posicion {
+    font-size: 0.92rem;
+}
+
+.table-posicion tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Optimizaciones responsive */
+@media (max-width: 768px) {
+    .posicion-controls .row {
+        text-align: center;
+    }
+    
+    .posicion-controls .col-md-6 {
+        margin-bottom: 1rem;
+    }
+}
+
+.table-posicion th {
+    background: #f3f3f3;
+    color: #b9a038;
+    font-weight: 700;
+    font-size: 0.98rem;
+    border-top: none !important;
+    border-bottom: 1.3px solid #e7e7e7 !important;
+    text-align: center;
+}
+.table-posicion td {
+    font-size: 0.97rem;
+    border-bottom: 1.3px solid #ececec !important;
+    background: #fff;
+    text-align: center;
+}
+.table-posicion tbody tr:last-child td {
+    border-bottom: none !important;
+}
+.table-container {
+    padding: 0.7rem;
+    border-radius: 1.08rem;
+}
+
+/* Columnas específicas */
+.col-id, .col-cliente { text-align: left !important; }
+.col-importe, .col-tc, .col-contravalor { text-align: right !important; }
+.col-banco, .col-abono { text-align: center !important; }
+
+/* Checkbox */
+.abono-checkbox {
+    width: 22px; 
+    height: 22px;
+    border: 2px solid #b9a038;
+    border-radius: 6px;
+    background: #fff;
+    display: inline-block;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s, border-color 0.2s;
+    margin: 0 5px;
+}
+.abono-checkbox.checked {
+    background: #b9a038;
+    border-color: #b9a038;
+}
+.abono-checkbox.checked:after {
+    content: '✔';
+    color: #fff;
+    font-size: 15px;
+    position: absolute;
+    left: 2px; top: 0;
+}
+.abono-checkbox.saving {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Fila resaltada */
+.fila-lista {
+    background-color: #f7f5e6 !important;
+    border-left: 4px solid #b9a038;
+    transition: all 0.3s ease;
+}
+.fila-lista td {
+    background-color: inherit;
+}
+
+/* Encabezados y totales */
+.posicion-header {
+    padding: 0.7rem 0.2rem;
+    border-radius: 1.08rem;
+    background: #f9f9fb;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(185,160,56,0.07);
+}
+.posicion-header-title,
+.posicion-header span {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Format moneda */
+.moneda-usd::before { content: "$ "; }
+.moneda-soles::before { content: "S/ "; }
+
+@media (max-width: 900px) {
+    .card, .table-container { padding: 0.6rem 0.2rem;}
+    .posicion-header-title { font-size: 1.2rem; }
+    .table-posicion { font-size: 0.92rem; }
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="posicion-header">
+    <div class="posicion-header-title">
+        POSICIÓN <span id="fecha-actual">{{ fecha_actual }}</span>
+    </div>
+    <div>
+        <span class="me-3">TOTAL VENTAS (USD): <strong id="total-venta-usd">{{ "{:,.2f}".format(total_venta_usd) }}</strong></span>
+        <span class="me-3">TOTAL COMPRAS (USD): <strong id="total-compra-usd">{{ "{:,.2f}".format(total_compra_usd) }}</strong></span>
+        <span class="posicion-diff {{ 'positivo' if diferencia_usd >= 0 else 'negativo' }}">
+            RESULTADO: {{ "{:,.2f}".format(diferencia_usd) }} USD
+        </span>
+    </div>
+</div>
+<!-- Agregar después del div .posicion-header existente -->
+<div class="posicion-controls mb-3">
+    <div class="row align-items-center">
+        <div class="col-md-6">
+            <div class="utilidad-dia-card card">
+                <div class="card-body py-2">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <strong class="text-muted">UTILIDAD DEL DÍA:</strong>
+                            <span id="utilidad-soles" class="ms-2 fs-5 fw-bold positivo">S/ 0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Botón "Descargar Excel" eliminado intencionalmente -->
+    </div>
+</div>
+<div class="row">
+    <!-- Tabla de Compras -->
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                COMPRAS DEL DÍA
+                <div class="float-end">
+                    USD: <strong id="total-compra-usd">{{ "{:,.2f}".format(total_compra_usd) }}</strong> &nbsp;|&nbsp;
+                    S/: <strong id="total-compra-pen">{{ "{:,.2f}".format(total_compra_pen) }}</strong>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-container">
+                    <table class="table table-bordered table-posicion mb-0" id="tabla-compras-posicion">
+                        <thead>
+                            <tr>
+                                <th class="col-id">ID OP</th>
+                                <th class="col-cliente">NOMBRE CLIENTE</th>
+                                <th class="col-importe">USD</th>
+                                <th class="col-banco">INGRESO</th>
+                                <th class="col-tc">TC</th>
+                                <th class="col-contravalor">S/</th>
+                                <th class="col-banco">SALIDA</th>
+                                <th class="col-abono">LISTO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for op in compras %}
+                            <tr class="{% if op[5] %}fila-lista{% endif %}">
+                                <td class="col-id">{{ op[0] }}</td>
+                                <td class="col-cliente">{{ op[1] }}</td>
+                                <td class="col-importe text-end moneda-usd">{{ "{:,.2f}".format(op[2]) }}</td>
+                                <td class="col-banco text-center">{{ op[6] if op|length > 6 else '' }}</td>
+                                <td class="col-tc text-end">{{ "{:,.4f}".format(op[3]) }}</td>
+                                <td class="col-contravalor text-end moneda-soles">{{ "{:,.2f}".format(op[4]) }}</td>
+                                <td class="col-banco text-center">{{ op[7] if op|length > 7 else '' }}</td>
+                                <td class="col-abono text-center">
+                                    <span class="abono-checkbox{% if op[5] %} checked{% endif %}" data-id="{{ op[0] }}" data-type="compra"></span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if compras|length == 0 %}
+                            <tr><td colspan="8" class="text-center">Sin operaciones de compra hoy.</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Tabla de Ventas -->
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header bg-success text-white">
+                VENTAS DEL DÍA
+                <div class="float-end">
+                    USD: <strong id="total-venta-usd">{{ "{:,.2f}".format(total_venta_usd) }}</strong> &nbsp;|&nbsp;
+                    S/: <strong id="total-venta-pen">{{ "{:,.2f}".format(total_venta_pen) }}</strong>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-container">
+                    <table class="table table-bordered table-posicion mb-0" id="tabla-ventas-posicion">
+                        <thead>
+                            <tr>
+                                <th class="col-id">ID OP</th>
+                                <th class="col-cliente">NOMBRE CLIENTE</th>
+                                <th class="col-importe">USD</th>
+                                <th class="col-banco">SALIDA</th>
+                                <th class="col-tc">TC</th>
+                                <th class="col-contravalor">S/</th>
+                                <th class="col-banco">INGRESO</th>
+                                <th class="col-abono">LISTO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for op in ventas %}
+                            <tr class="{% if op[5] %}fila-lista{% endif %}">
+                                <td class="col-id">{{ op[0] }}</td>
+                                <td class="col-cliente">{{ op[1] }}</td>
+                                <td class="col-importe text-end moneda-usd">{{ "{:,.2f}".format(op[2]) }}</td>
+                                <td class="col-banco text-center">{{ op[6] if op|length > 6 else '' }}</td>
+                                <td class="col-tc text-end">{{ "{:,.4f}".format(op[3]) }}</td>
+                                <td class="col-contravalor text-end moneda-soles">{{ "{:,.2f}".format(op[4]) }}</td>
+                                <td class="col-banco text-center">{{ op[7] if op|length > 7 else '' }}</td>
+                                <td class="col-abono text-center">
+                                    <span class="abono-checkbox{% if op[5] %} checked{% endif %}" data-id="{{ op[0] }}" data-type="venta"></span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if ventas|length == 0 %}
+                            <tr><td colspan="8" class="text-center">Sin operaciones de venta hoy.</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+<script>
+ // Variable global para el socket
+let socket;
+
+function initSocket() {
+    // Conectar a Socket.IO
+    socket = io({
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: 5
+    });
+
+    socket.on('connect', function() {
+        console.log('Conectado a Socket.IO - Posición');
+        // Unirse a la sala de posición
+        socket.emit('join_posicion_room');
+    });
+
+    socket.on('disconnect', function() {
+        console.log('Desconectado de Socket.IO');
+    });
+
+    socket.on('operacion_actualizada_posicion', function(data) {
+        console.log('Actualización recibida:', data);
+        // Forzar actualización inmediata de las tablas
+        actualizarPosicion();
+        
+        // Mostrar notificación visual
+        mostrarNotificacion(`Operación ${data.operation_id} ${data.accion} - ${data.timestamp}`);
+    });
+
+    socket.on('nueva_operacion', function(data) {
+        console.log('Nueva operación recibida');
+        actualizarPosicion();
+        mostrarNotificacion('Nueva operación creada - Actualizando posición...');
+    });
+
+    socket.on('operacion_actualizada', function(data) {
+        console.log('Operación actualizada recibida:', data);
+        actualizarPosicion();
+        mostrarNotificacion(`Operación ${data.operation_id} actualizada`);
+    });
+}
+
+function mostrarNotificacion(mensaje) {
+    // Crear notificación toast
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 p-3';
+    toast.style.zIndex = '11';
+    toast.innerHTML = `
+        <div class="toast show" role="alert">
+            <div class="toast-header" style="background: #b9a038; color: white;">
+                <strong class="me-auto">Actualización Posición</strong>
+                <small>Ahora</small>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                ${mensaje}
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    // Auto-eliminar después de 3 segundos
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 3000);
+}
+
+function updateFecha() {
+    let now = new Date();
+    let yyyy = now.getFullYear();
+    let mm = String(now.getMonth() + 1).padStart(2, '0');
+    let dd = String(now.getDate()).padStart(2, '0');
+    $('#fecha-actual').text(`${yyyy}-${mm}-${dd}`);
+}
+
+// Variable para controlar si ya hay una actualización en curso
+let actualizando = false;
+
+function actualizarPosicion() {
+    if (actualizando) {
+        console.log('Ya hay una actualización en curso, omitiendo...');
+        return;
+    }
+    
+    actualizando = true;
+    
+    $.getJSON('/api/posicion_stats', function(data) {
+        if (!data) {
+            actualizando = false;
+            return;
+        }
+        
+        // Actualizar totales
+        $('#total-compra-usd').text(Number(data.total_compra_usd).toLocaleString('en-US', {minimumFractionDigits:2}));
+        $('#total-venta-usd').text(Number(data.total_venta_usd).toLocaleString('en-US', {minimumFractionDigits:2}));
+        $('#total-compra-pen').text(Number(data.total_compra_pen).toLocaleString('es-PE', {minimumFractionDigits:2}));
+        $('#total-venta-pen').text(Number(data.total_venta_pen).toLocaleString('es-PE', {minimumFractionDigits:2}));
+        
+        // Actualizar diferencia USD
+        $('.posicion-diff').text('RESULTADO: ' + Number(data.diferencia_usd).toLocaleString('en-US', {minimumFractionDigits:2}) + ' USD')
+            .toggleClass('positivo', data.diferencia_usd >= 0)
+            .toggleClass('negativo', data.diferencia_usd < 0);
+
+        // Actualizar utilidad del día
+        actualizarUtilidadDia();
+
+        // Actualizar tabla de compras
+        var $compras = $('#tabla-compras-posicion tbody');
+        $compras.empty();
+        if(data.compras && data.compras.length) {
+            data.compras.forEach(function(op){
+                $compras.append(`
+                    <tr class="${op[5] ? 'fila-lista' : ''}">
+                        <td class="col-id">${op[0]}</td>
+                        <td class="col-cliente">${op[1]}</td>
+                        <td class="col-importe text-end moneda-usd">${Number(op[2]).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+                        <td class="col-banco text-center">${op[6] || ''}</td>
+                        <td class="col-tc text-end">${Number(op[3]).toFixed(4)}</td>
+                        <td class="col-contravalor text-end moneda-soles">${Number(op[4]).toLocaleString('es-PE', {minimumFractionDigits:2})}</td>
+                        <td class="col-banco text-center">${op[7] || ''}</td>
+                        <td class="col-abono text-center">
+                            <span class="abono-checkbox${op[5] ? ' checked' : ''}" data-id="${op[0]}" data-type="compra"></span>
+                        </td>
+                    </tr>
+                `);
+            });
+        } else {
+            $compras.append('<tr><td colspan="8" class="text-center">Sin operaciones de compra hoy.</td></tr>');
+        }
+
+        // Actualizar tabla de ventas
+        var $ventas = $('#tabla-ventas-posicion tbody');
+        $ventas.empty();
+        if(data.ventas && data.ventas.length) {
+            data.ventas.forEach(function(op){
+                $ventas.append(`
+                    <tr class="${op[5] ? 'fila-lista' : ''}">
+                        <td class="col-id">${op[0]}</td>
+                        <td class="col-cliente">${op[1]}</td>
+                        <td class="col-importe text-end moneda-usd">${Number(op[2]).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+                        <td class="col-banco text-center">${op[6] || ''}</td>
+                        <td class="col-tc text-end">${Number(op[3]).toFixed(4)}</td>
+                        <td class="col-contravalor text-end moneda-soles">${Number(op[4]).toLocaleString('es-PE', {minimumFractionDigits:2})}</td>
+                        <td class="col-banco text-center">${op[7] || ''}</td>
+                        <td class="col-abono text-center">
+                            <span class="abono-checkbox${op[5] ? ' checked' : ''}" data-id="${op[0]}" data-type="venta"></span>
+                        </td>
+                    </tr>
+                `);
+            });
+        } else {
+            $ventas.append('<tr><td colspan="8" class="text-center">Sin operaciones de venta hoy.</td></tr>');
+        }
+        
+        actualizando = false;
+    }).fail(function(xhr, status, error) {
+        console.error('Error al actualizar posición:', error);
+        actualizando = false;
+    });
+}
+
+// Actualizar utilidad del día en tiempo real
+function actualizarUtilidadDia() {
+    const totalVentaPen = parseFloat($('#total-venta-pen').text().replace(/[S\/\s,]/g, '')) || 0;
+    const totalCompraPen = parseFloat($('#total-compra-pen').text().replace(/[S\/\s,]/g, '')) || 0;
+    const utilidadSoles = totalVentaPen - totalCompraPen;
+    
+    const $utilidadElem = $('#utilidad-soles');
+    $utilidadElem.text('S/ ' + utilidadSoles.toLocaleString('es-PE', {minimumFractionDigits: 2}));
+    
+    // Aplicar clases de color
+    $utilidadElem.removeClass('positivo negativo');
+    if (utilidadSoles >= 0) {
+        $utilidadElem.addClass('positivo');
+    } else {
+        $utilidadElem.addClass('negativo');
+    }
+}
+
+$(document).ready(function () {
+    // Inicializar Socket.IO
+    initSocket();
+    
+    updateFecha();
+    actualizarPosicion();
+
+    // Obtener token CSRF de la meta etiqueta
+    var csrfToken = $('meta[name="csrf-token"]').attr('content');
+
+    // Al hacer click, marca/desmarca visualmente y dispara AJAX
+    $(document).on('click', '.abono-checkbox', function(){
+        let $this = $(this);
+        if($this.hasClass('saving')) return;
+        $this.addClass('saving');
+
+        // Marcar/desmarcar visualmente de inmediato
+        let marcar = !$this.hasClass('checked');
+        if(marcar){
+            $this.addClass('checked');
+        } else {
+            $this.removeClass('checked');
+        }
+
+        let opId = $this.data('id');
+        let $fila = $this.closest('tr');
+
+        // Aplicar/remover el resaltado de la fila
+        if(marcar){
+            $fila.addClass('fila-lista');
+        } else {
+            $fila.removeClass('fila-lista');
+        }
+
+        $.ajax({
+            url: '/api/marcar_abono',
+            method: 'POST',
+            contentType: 'application/json',
+            headers: {'X-CSRFToken': csrfToken},
+            data: JSON.stringify({id: opId, abono: marcar}),
+            complete: function(xhr) {
+                $this.removeClass('saving');
+                // Si hubo error de backend, vuelve al estado anterior y muestra mensaje
+                if(xhr.status !== 200) {
+                    if(marcar){
+                        $this.removeClass('checked');
+                        $fila.removeClass('fila-lista');
+                    } else {
+                        $this.addClass('checked');
+                        $fila.addClass('fila-lista');
+                    }
+                    let msg = 'Error al actualizar abono. Intenta de nuevo.';
+                    try {
+                        if (xhr.responseJSON && xhr.responseJSON.msg) msg = xhr.responseJSON.msg;
+                        else if (xhr.responseText) msg = xhr.responseText;
+                    } catch(e) {}
+                    alert(msg);
+                }
+            }
+        });
+    });
+
+    // Polling de respaldo cada 10 segundos (por si falla Socket.IO)
+    setInterval(actualizarPosicion, 10000);
+    
+    // Inicializar utilidad del día
+    setTimeout(actualizarUtilidadDia, 100);
+});
+</script>
+{% endblock %}

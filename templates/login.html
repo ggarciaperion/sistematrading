@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Iniciar Sesión{% endblock %}
+
+{% block head %}
+<style>
+body, .main-content {
+    background: #f5f6f8 !important;
+    color: #181d22 !important;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+.login-container {
+    max-width: 420px;
+    margin: 6vh auto;
+    padding: 0;
+    border-radius: 1.2rem;
+    box-shadow: 0 12px 40px rgba(9,14,20,0.08);
+    background: #ffffff;
+}
+.login-card {
+    padding: 2.4rem;
+    border-radius: 1.2rem;
+}
+.login-logo {
+    display: block;
+    margin: 0 auto 0.6rem auto;
+    width: 120px;
+    height: auto;
+}
+.login-title {
+    color: #b9a038;
+    text-align: center;
+    font-weight: 800;
+    font-size: 1.6rem;
+    margin-bottom: .25rem;
+    letter-spacing: 0.5px;
+}
+.login-subtitle {
+    text-align: center;
+    color: #6b7280;
+    margin-bottom: 1.6rem;
+    font-weight: 600;
+}
+.form-label {
+    color: #6b6b6b;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+input.form-control {
+    border-radius: 0.5rem;
+    background: #f0f6fb;
+    color: #181d22;
+    border: 1px solid #e8eef4;
+    padding: .55rem .75rem;
+}
+input.form-control:focus {
+    border-color: #b9a038;
+    box-shadow: 0 0 0 4px rgba(185,160,56,0.08);
+}
+.btn-primary {
+    background: #b9a038 !important;
+    color: #fff !important;
+    border-radius: 0.6rem;
+    font-weight: 700;
+    border: none;
+    padding: .6rem 1rem;
+}
+.btn-link {
+    color: #6b7280;
+}
+.remember-row { display:flex; align-items:center; justify-content:space-between; margin-top:.6rem; }
+.help-text { font-size:0.9rem; color:#6b7280; }
+
+.alert-login {
+    margin-bottom: 1rem;
+    border-radius: .6rem;
+}
+
+/* Modal styles small adjustments */
+.modal .form-control { background: #fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container card shadow-sm">
+    <div class="login-card">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo QoriCash" class="login-logo">        
+        <div class="login-subtitle">Sistema de Trading</div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-warning alert-login">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form id="loginForm" method="POST" action="{{ url_for('login') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label for="username" class="form-label">Usuario o Correo</label>
+                <input type="text" class="form-control" id="username" name="username" required autofocus value="{{ request.form.username or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Contraseña</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+
+            <div class="remember-row">
+                <div>
+                    <input type="checkbox" id="remember" name="remember" style="transform:scale(1.05); margin-right:.45rem;">
+                    <label for="remember" class="help-text" style="display:inline-block;">Recordarme</label>
+                </div>
+                <div>
+                    <!-- Abrir modal de solicitud a Master (no pedimos correo aquí) -->
+                    <button type="button" class="btn btn-link" id="btnForgot" data-bs-toggle="modal" data-bs-target="#modalForgotMaster">Olvidé contraseña</button>
+                </div>
+            </div>
+
+            <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+            </div>
+        </form>
+
+        <div class="text-center mt-3">
+            <small class="text-muted">¿Problemas para ingresar? Solicite al Master que restablezca su contraseña usando el botón "Olvidé contraseña".</small>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Solicitar al Master restablecer contraseña (NO solicita email) -->
+<div class="modal fade" id="modalForgotMaster" tabindex="-1" aria-labelledby="modalForgotMasterLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form id="requestMasterResetForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalForgotMasterLabel">Solicitar restablecimiento por Master</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+            <div id="forgotMasterAlert" class="alert d-none"></div>
+            <p>Se solicitará a un usuario con rol Master que restablezca la contraseña de la cuenta asociada al usuario ingresado en el campo "Usuario o Correo".</p>
+            <div class="mb-3">
+                <label class="form-label">Usuario / Correo a solicitar</label>
+                <!-- Si el campo username en el formulario está lleno, lo usamos; de lo contrario el usuario puede completar aquí -->
+                <input type="text" id="forgot_target" class="form-control" placeholder="Si no hay texto, se usará el 'Usuario o Correo' del formulario" >
+            </div>
+            <small class="text-muted">El Master recibirá una notificación inmediata en su panel para procesar la solicitud.</small>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Solicitar al Master</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(function(){
+    // Solicitar que el Master restablezca la contraseña
+    $('#requestMasterResetForm').submit(function(e){
+        e.preventDefault();
+        $('#forgotMasterAlert').removeClass().addClass('alert alert-info').text('Enviando solicitud...').removeClass('d-none');
+
+        // Tomar usuario objetivo: si el input del modal está vacío, usar el campo username del formulario principal
+        var target = $('#forgot_target').val().trim() || $('#username').val().trim();
+        if (!target) {
+            $('#forgotMasterAlert').removeClass().addClass('alert alert-danger').text('Indica el usuario o correo a solicitar.');
+            return;
+        }
+
+        $.ajax({
+            url: '/request_master_reset',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ identifier: target }),
+            success: function(resp){
+                if (resp && resp.success) {
+                    $('#forgotMasterAlert').removeClass().addClass('alert alert-success').text(resp.msg || 'Solicitud enviada. Un Master será notificado.');
+                    // Opcional: mostrar info devuelta
+                    if (resp.info) {
+                        $('#forgotMasterAlert').append('<div class="mt-2 small text-muted">'+resp.info+'</div>');
+                    }
+                    // Cerrar modal después de breve pausa
+                    setTimeout(function(){ $('#modalForgotMaster').modal('hide'); }, 900);
+                } else {
+                    $('#forgotMasterAlert').removeClass().addClass('alert alert-danger').text(resp.msg || 'No se pudo enviar la solicitud.');
+                }
+            },
+            error: function(xhr){
+                var msg = 'Error al enviar la solicitud';
+                try { if (xhr.responseJSON && xhr.responseJSON.msg) msg = xhr.responseJSON.msg; } catch(e){}
+                $('#forgotMasterAlert').removeClass().addClass('alert alert-danger').text(msg);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

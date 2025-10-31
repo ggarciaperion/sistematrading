@@ -1,0 +1,2141 @@
+{% extends "base.html" %}
+{% block title %}Operaciones - Sistema de Trading de Dólares{% endblock %}
+{% block head %}
+<style>
+/* QoriCash Visual Style for Operaciones */
+
+/* Fondo general y contenedor de tarjetas */
+body, .main-content {
+    background: #fff !important;
+    color: #181d22 !important;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+.card, .clientes-table-card, .table-responsive {
+    background: #f9f9fb;
+    border-radius: 1.08rem;
+    box-shadow: 0 2px 8px rgba(185,160,56,0.07);
+    border: 2px solid #ececec;
+}
+
+#abonosContainer .abono-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+}
+#abonosContainer .abono-row > div {
+    min-width: 90px;
+    /* Evita que se rompa la línea en pantallas amplias */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+@media (max-width: 900px) {
+    #abonosContainer .abono-row {
+        flex-wrap: wrap;
+    }
+}
+
+/* Encabezados y títulos */
+.card-header, .modal-header, .modal-footer {
+    background: #f3f3f3;
+    border-color: #ececec !important;
+    border-radius: 1.08rem 1.08rem 0 0;
+}
+.card-title, .modal-title, h6, .form-label {
+    color: #b9a038 !important;
+    font-weight: 700;
+    letter-spacing: .5px;
+    font-size: 1.05rem;
+}
+
+/* Botones */
+.btn-primary, .btn-warning, .btn-danger, .btn-info {
+    border-radius: 0.5rem !important;
+    font-weight: 600;
+    box-shadow: 0 1px 4px rgba(185,160,56,0.09);
+    border: none;
+}
+.btn-primary {
+    background: #b9a038 !important;
+    color: #fff !important;
+}
+.btn-primary:hover {
+    background: #a58c2e !important;
+}
+.btn-info {
+    background: #cfe2ff !important;
+    color: #084298 !important;
+}
+.btn-warning {
+    background: #ffe8b3 !important;
+    color: #8d6700 !important;
+}
+.btn-danger {
+    background: #ffd6d6 !important;
+    color: #a72c2c !important;
+}
+
+/* Inputs y selects */
+input.form-control, select.form-select, textarea.form-control {
+    border-radius: 0.5rem;
+    background: #fafbfc;
+    color: #181d22;
+    border: 1px solid #ececec;
+}
+input[readonly], select[readonly], textarea[readonly] {
+    background: #f3f3f3;
+    color: #888;
+}
+input.form-control:focus, select.form-select:focus, textarea.form-control:focus {
+    border-color: #b9a038;
+    box-shadow: 0 0 0 2px #ffe8b344;
+}
+
+/* Tabla de operaciones */
+#operationsTable {
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 2px 12px rgba(185,160,56,0.09);
+}
+#operationsTable th {
+    background: #f3f3f3;
+    color: #b9a038;
+    font-weight: 700;
+    font-size: 1rem;
+    border-top: none !important;
+    border-bottom: 1.3px solid #e7e7e7 !important;
+}
+#operationsTable td {
+    font-size: 0.98rem;
+    border-bottom: 1.3px solid #ececec !important;
+    background: #fff;
+}
+#operationsTable tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+/* Badges de estado */
+.badge.bg-success, .badge.bg-warning, .badge.bg-danger, .badge.bg-info, .badge-estado {
+    font-size: 0.85rem;
+    padding: 0.36em 0.98em;
+    border-radius: 1em;
+    font-weight: 600;
+    border: 1px solid #c5e6bb;
+    margin-left: 0.3em;
+}
+.badge.bg-success { background: #43a047 !important; color: #fff !important; border-color: #d9f5d0 !important; }
+.badge.bg-warning, .badge-estado { background: #ffe8b3 !important; color: #8d6700 !important; border-color: #f3e2ae !important; }
+.badge.bg-danger  { background: #ffd6d6 !important; color: #a72c2c !important; border-color: #ffd6d6 !important; }
+.badge.bg-info    { background: #cfe2ff !important; color: #084298 !important; border-color: #cfe2ff !important; }
+
+/* Banner de compra y venta */
+.banner-compra, .banner-venta {
+    border-radius: 0.7rem;
+    font-weight: 700;
+    font-size: 1.05rem;
+    margin-bottom: 1.1rem;
+    padding: 1rem 1.2rem;
+    box-shadow: 0 2px 8px rgba(185,160,56,0.07);
+}
+.banner-compra {
+    background: linear-gradient(135deg, #e5eecf 0%, #f4f6e8 100%);
+    color: #43a047;
+    border-left: 5px solid #43a047;
+}
+.banner-venta {
+    background: linear-gradient(135deg, #f0f3ff 0%, #e3e8fa 100%);
+    color: #084298;
+    border-left: 5px solid #084298;
+}
+
+/* Modal de operaciones */
+#modalOperacion .modal-content {
+    border-radius: 1.1rem;
+    box-shadow: 0 1px 8px rgba(185,160,56,0.12);
+    border: 2px solid #ececec;
+    background: #fff;
+}
+#modalOperacion .card {
+    border-radius: 0.8rem;
+    background: #fafbfc;
+    border: 1px solid #ececec;
+    box-shadow: 0 1px 5px rgba(185,160,56,0.06);
+}
+#modalOperacion .card-header {
+    background: #f3f3f3;
+    color: #b9a038;
+    font-weight: 700;
+    border-bottom: 1px solid #ececec;
+    border-radius: 0.8rem 0.8rem 0 0;
+}
+#modalOperacion .form-label {
+    color: #b9a038;
+    font-weight: 600;
+    font-size: 1.01rem;
+    margin-bottom: 0.2rem;
+}
+#abonosContainer .abono-row, #flujo-cuentas-list .flujo-cuenta-item {
+    background: #fff;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 5px rgba(185,160,56,0.04);
+    border: 1px solid #ececec;
+    margin-bottom: 0.8rem;
+    padding: 0.8rem;
+}
+#abonosContainer .abono-row:last-child,
+#flujo-cuentas-list .flujo-cuenta-item:last-child {
+    margin-bottom: 0;
+}
+#modalOperacion .btn {
+    border-radius: 0.5rem !important;
+    font-weight: 600;
+}
+#modalOperacion .btn-primary {
+    background: #b9a038 !important;
+    color: #fff !important;
+    border: none !important;
+}
+#modalOperacion .btn-primary:hover {
+    background: #a58c2e !important;
+}
+#modalOperacion .btn-info {
+    background: #cfe2ff !important;
+    color: #084298 !important;
+    border: none !important;
+}
+#modalOperacion .btn-warning {
+    background: #ffe8b3 !important;
+    color: #8d6700 !important;
+    border: none !important;
+}
+#modalOperacion .btn-danger {
+    background: #ffd6d6 !important;
+    color: #a72c2c !important;
+    border: none !important;
+}
+#modalOperacion .btn-secondary {
+    border-radius: 0.5rem;
+}
+
+/* Chips y secciones readonly */
+.chip-parcial {
+    background: #f3f3f3;
+    border-radius: 0.5rem;
+    padding: 0.2rem 0.7rem;
+    font-weight: 600;
+    color: #b9a038;
+    margin-bottom: 0.5rem;
+}
+.readonly-section {
+    background: #f6f9fc;
+    border-radius: 0.7rem;
+    padding: 0.7em 1em;
+    margin-bottom: 1em;
+    font-size: 0.98em;
+    border: 1px solid #ececec;
+}
+.readonly-section label {
+    font-weight: 700;
+    color: #b9a038;
+    margin-bottom: 0.25em;
+}
+.readonly-section .readonly-value {
+    color: #181d22;
+    font-weight: 400;
+    display: block;
+    margin-bottom: 0.35em;
+    word-break: break-all;
+}
+
+/* Notificaciones */
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 400px;
+}
+.notification {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(185,160,56,0.15);
+    margin-bottom: 10px;
+    padding: 15px;
+    border-left: 4px solid #b9a038;
+    animation: slideIn 0.3s ease-out;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.notification.nuevo-cliente {
+    border-left-color: #43a047;
+}
+.notification.nueva-operacion {
+    border-left-color: #b9a038;
+}
+.notification-icon {
+    font-size: 1.5em;
+    flex-shrink: 0;
+    color: #b9a038;
+}
+.notification-content {
+    flex-grow: 1;
+}
+.notification-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+    font-size: 0.95em;
+    color: #181d22;
+}
+.notification-message {
+    font-size: 0.85em;
+    color: #666;
+    margin-bottom: 4px;
+}
+.notification-time {
+    font-size: 0.75em;
+    color: #999;
+}
+.notification-close {
+    background: none;
+    border: none;
+    font-size: 1.2em;
+    cursor: pointer;
+    color: #999;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+.notification.hiding {
+    animation: slideOut 0.3s ease-in forwards;
+}
+/* Responsive */
+@media (max-width: 900px) {
+    .card, .clientes-table-card, .table-responsive { padding: 1rem 0.5rem;}
+    #operationsTable { font-size: 0.92rem; }
+}
+</style>
+{% endblock %}
+{% block content %}
+<!-- Contenedor de notificaciones -->
+<div class="notification-container" id="notificationContainer"></div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <input type="text" id="searchOperations" class="form-control" placeholder="Buscar por número de documento o nombre de cliente">
+                    <button class="btn btn-outline-secondary" type="button" id="searchButton">Buscar</button>
+                </div>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+    {% if user.role != 'Operador' %}
+    <button class="btn btn-primary flex-grow-1" data-bs-toggle="modal" data-bs-target="#operationModal">
+        Crear Operación
+    </button>
+    {% endif %}
+
+    {# REEMPLAZAR POR: botón descarga directa (sin modal) - mantener visibilidad solo para Master y Operador #}
+{% if user.role in ['Master', 'Operador'] %}
+<button id="btnDownloadOperations" class="btn btn-success" title="Descargar operaciones de hoy como Excel">
+    <i class="bi bi-download"></i>&nbsp;Descargar Operaciones
+</button>
+{% endif %}
+</div>
+        </div>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title">Operaciones <small id="operationsDate" style="font-weight:600; margin-left:8px;"></small></h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="operationsTable" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>IDOP</th>
+                        <th>N° de documento</th>
+                        <th>Cliente</th>
+                        <th>Tipo de operación</th>
+                        <th>Importe USD</th>
+                        <th>Tipo de cambio</th>
+                        <th>Contravalor S/</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                        <th>Fecha</th>
+                        {% if user.role in ['Master', 'Operador'] %}
+                        <th>Usuario</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+{% for operation in operations %}
+<tr 
+    data-operation-id="{{ operation[0] }}"
+    data-operacion-tipo="{{ operation[3] }}"
+    data-operacion-monto="{{ operation[4] }}"
+    data-operacion-tc="{{ operation[5] }}"
+    data-operacion-estado="{{ operation[9] }}"
+    data-operacion-source-bank="{{ operation[12] or '' }}"
+    data-operacion-source-account="{{ operation[7] or '' }}"
+    data-operacion-dest-bank="{{ operation[13] or '' }}"
+    data-operacion-dest-account="{{ operation[8] or '' }}"
+    data-operacion-modificado="{{ operation[10] }}"
+    data-operacion-fecha-mod="{{ operation[18] if operation|length > 18 else '' }}"
+>
+    <td>{{ operation[0] }}</td>
+    <td>{{ operation[1] }}</td>
+    <td>{{ operation[2] }}</td>
+    <td>{{ operation[3] }}</td>
+    <td>$ {{ "{:,.2f}".format(operation[4]) }}</td>
+    <td>{{ "{:.4f}".format(operation[5]) }}</td>
+    <td>S/ {{ "{:,.2f}".format(operation[6]) }}</td>
+    <td>
+        <span class="badge bg-{% if operation[9] == 'Completada' %}success{% elif operation[9] == 'En proceso' or operation[9] == 'P-En Proceso' %}info{% elif operation[9] == 'Cancelado' %}danger{% else %}warning{% endif %}">{{ operation[9] }}</span>
+    </td>
+    <td>
+      {% set st = (operation[9] | default('') | string | trim | lower) %}
+      {% if user.role == 'Trader' %}
+          {% if st == 'pendiente' %}
+              <button class="btn btn-info btn-sm view-operation" data-operation-id="{{ operation[0] }}">Ver</button>
+              <!-- ELIMINADO: Editar. SOLO CANCELAR, CAMBIADO ÍCONO -->
+              <button class="btn btn-danger btn-sm cancel-operation" data-operation-id="{{ operation[0] }}" title="Cancelar"><i class="bi bi-x-circle"></i></button>
+          {% elif st in ['en proceso','p-en proceso','procesado','p-procesado'] %}
+              <button class="btn btn-info btn-sm view-operation" data-operation-id="{{ operation[0] }}">Ver</button>
+          {% endif %}
+      {% elif user.role == 'Operador' %}
+          {% if st in ['pendiente','en proceso','p-en proceso','procesado','p-procesado'] %}
+              <button class="btn btn-info btn-sm view-operation" data-operation-id="{{ operation[0] }}">Ver</button>
+          {% endif %}
+      {% elif user.role == 'Master' %}
+          {% if st == 'pendiente' %}
+              <button class="btn btn-info btn-sm view-operation" data-operation-id="{{ operation[0] }}">Ver</button>
+              <!-- ELIMINADO: Editar. SOLO CANCELAR, CAMBIADO ÍCONO -->
+              <button class="btn btn-danger btn-sm cancel-operation" data-operation-id="{{ operation[0] }}" title="Cancelar"><i class="bi bi-x-circle"></i></button>
+          {% endif %}
+      {% endif %}
+    </td>
+    <td>{{ operation[11] }}</td>
+    {% if user.role in ['Master', 'Operador'] %}
+    <td>{{ operation[17] }}</td>
+    {% endif %}
+</tr>
+{% endfor %}
+</tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<!-- Modal para crear operación -->
+<div class="modal fade" id="operationModal" tabindex="-1" aria-labelledby="operationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="operationModalLabel">Crear Nueva Operación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="operationForm" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" id="csrf_token_operacion" value="{{ csrf_token() }}">
+                    <input type="hidden" name="client_db_id" id="client_db_id">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="doc_number" class="form-label">N° de Documento</label>
+                            <input type="text" class="form-control" id="doc_number" name="doc_number" required
+                                oninput="this.value = this.value.replace(/[^0-9]/g, ''); searchClientNombreYCuenta()">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="client_name" class="form-label">Cliente</label>
+                            <input type="text" class="form-control" id="client_name" readonly>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="operation_type" class="form-label">Tipo de operación</label>
+                            <select class="form-select" id="operation_type" name="operation_type" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Compra">Compra</option>
+                                <option value="Venta">Venta</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="amount_usd" class="form-label">Importe USD</label>
+                            <input type="text"
+                                class="form-control"
+                                id="amount_usd"
+                                name="amount_usd"
+                                required
+                                inputmode="decimal"
+                                autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="exchange_rate" class="form-label">Tipo de cambio</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="exchange_rate" 
+                                name="exchange_rate" 
+                                required                 
+                                inputmode="decimal"
+                                pattern="^\d+(\.\d{1,4})?$"
+                                autocomplete="off"
+                                placeholder="Ej: 3.5250" 
+                                maxlength="6"
+                            />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="amount_pen" class="form-label">Contravalor S/</label>
+                            <input type="text" class="form-control" id="amount_pen" readonly>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="source_account" class="form-label">Elegir cuenta de cargo</label>
+                            <select class="form-select" id="source_account" name="source_account" required>
+                                <option value="">Seleccionar cuenta...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="destination_account" class="form-label">Elegir cuenta de destino</label>
+                            <select class="form-select" id="destination_account" name="destination_account" required>
+                                <option value="">Seleccionar cuenta...</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+                <div id="alertaCuentas" class="alert alert-danger d-none mt-2"></div>
+            </div>
+            <div class="modal-footer">
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button> 
+  <button type="submit" class="btn btn-primary" id="btnEnviarOperacion">Enviar</button>
+</div>
+        </div>
+    </div>
+</div>
+<!-- Modal de operaciones (único para Ver, todos los roles) -->
+<div class="modal fade" id="modalOperacion" tabindex="-1" aria-labelledby="modalOperacionLabel" aria-hidden="true">
+  
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <form id="formOperacion" enctype="multipart/form-data">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold text-primary" id="modalOperacionLabel">
+            <i class="bi bi-eye me-2"></i>Detalles de la Operación
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          
+          <!-- Sección de información básica -->
+          <div class="card mb-4">
+            <div class="card-header bg-primary text-white py-2">
+              <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Información General</h6>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-semibold text-muted small">ID Operación</label>
+                  <div class="fw-bold" id="modal-operation-id">-</div>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-semibold text-muted small">Cliente</label>
+                  <div class="fw-bold" id="modal-client-name">-</div>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-semibold text-muted small">Tipo de Operación</label>
+                  <div class="fw-bold" id="modal-operation-type">-</div>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-semibold text-muted small">Estado</label>
+                  <div id="modal-operation-status">-</div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-semibold text-muted small">Importe USD</label>
+                  <div class="fw-bold d-flex align-items-center" id="modal-amount-usd-container">
+                    <span id="modal-amount-usd">-</span>
+                    {% if user.role in ['Trader', 'Master'] %}
+                    <button type="button" id="btn-edit-usd" class="btn btn-link btn-sm p-0 ms-2" title="Editar Importe USD" style="font-size:1.15em;">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                    {% endif %}
+                  </div>
+		  <div id="modal-operation-modified-info" class="text-muted small mt-2"></div>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-semibold text-muted small">Tipo de Cambio</label>
+                  <div class="fw-bold" id="modal-exchange-rate">-</div>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-semibold text-muted small">Contravalor S/</label>
+                  <div class="fw-bold" id="modal-amount-pen">-</div>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-semibold text-muted small">Fecha</label>
+                  <div id="modal-operation-date">-</div>
+                </div>
+              </div>
+            </div>
+          </div>      
+                    
+          <!-- Banner de operación -->
+          <div id="bannerOperacion" class="mb-4"></div>
+          
+          <!-- Sección de abonos -->
+          <div class="card mb-4">
+            <div class="card-header bg-success text-white py-2 d-flex justify-content-between align-items-center">
+              <h6 class="mb-0"><i class="bi bi-cash-coin me-2"></i>Abonos</h6>
+              <button type="button" class="btn btn-light btn-sm" id="btnAgregarAbono">
+                <i class="bi bi-plus-circle me-1"></i>Agregar Abono
+              </button>
+            </div>
+            <div class="card-body">
+              <div id="alertaDiferenciaTotal" class="mb-3"></div>
+              <div id="abonosContainer"></div>
+            </div>
+          </div>
+	  <!-- Cartel de pagos -->
+<div id="bannerPagos" class="mb-4"></div>
+
+<!-- Sección de pagos -->
+<div class="card mb-4">
+  <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-wallet2 me-2"></i>Pagos</h6>
+    <button type="button" class="btn btn-light btn-sm" id="btnAgregarPago">
+      <i class="bi bi-plus-circle me-1"></i>Agregar Pago
+    </button>
+  </div>
+  <div class="card-body">
+    <div id="alertaDiferenciaTotalPagos" class="mb-3"></div>
+    <div id="pagosContainer"></div>
+  </div>
+</div>
+          
+          <!-- Sección de operador (solo para operadores) -->
+          {% if user.role == 'Operador' %}
+<div id="operador-extra-fields" class="card mb-4" style="display:none;">
+  <div class="card-header bg-warning text-dark py-2">
+    <h6 class="mb-0"><i class="bi bi-person-check me-2"></i>Validación del Operador</h6>
+  </div>
+  <div class="card-body">
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Comprobantes del Operador</label>
+
+      <!-- Visible list of individual file inputs (the "+" button will add up to 4 items here) -->
+      <div id="operador-comprobantes-wrapper">
+        <div id="operador-comprobantes-list" class="d-flex flex-wrap gap-2">
+          <!-- input inicial -->
+          <div class="input-group comprovante-item" style="min-width:220px;">
+            <input type="file" class="form-control operador-comprobante-item" accept=".png,.jpg,.jpeg,.pdf">
+            <button type="button" class="btn btn-outline-danger btn-sm btn-remove-comprobante" title="Eliminar" style="display:none;">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-2 d-flex align-items-center gap-2">
+          <!-- Botón + : agrega otra casilla (hasta 4) -->
+          <button type="button" class="btn btn-light btn-sm" id="btnAgregarComprobanteOperador" title="Agregar comprobante">
+            <i class="bi bi-plus-lg"></i>
+          </button>
+          <small class="form-text text-muted">Permite adjuntar hasta 4 comprobantes.</small>
+        </div>
+      </div>
+
+      <!-- Hidden input para mantener compatibilidad con la lógica existente (el submit lee #input-comprobantes-operador.files) -->
+      <input type="file" id="input-comprobantes-operador" name="operador_comprobantes[]" multiple accept=".png,.jpg,.jpeg,.pdf" style="display:none;">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Comentario del Operador (opcional)</label>
+      <textarea class="form-control" id="operador-comentario" rows="2"></textarea>
+    </div>
+  </div>
+</div>
+{% endif %}
+          
+          <!-- Información del operador (cuando la operación está finalizada) -->
+          <!-- [NUEVO] Visible para Master/Trader y también para Operador cuando la operación está en estado Procesado
+                     (la lógica para mostrar/ocultar se encuentra en showOperatorFilesAndNotes JS) -->
+          <div id="info-operador-finalizada" class="card mb-4" style="display:none;">
+            <div class="card-header bg-info text-white py-2">
+              <h6 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Comprobantes y Notas del Operador</h6>
+            </div>
+            <div class="card-body">
+              <div id="info-operador-archivos" class="mb-3"></div>
+              <div class="mb-2">
+                <label class="form-label fw-semibold">Comentario del Operador</label>
+                <textarea class="form-control" id="info-operador-comentario" rows="2" readonly style="background:#f8f9fa;"></textarea>
+              </div>
+            </div>
+          </div>          
+                  
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-1"></i>Cerrar
+          </button>
+          {% if user.role in ['Operador', 'Master'] %}
+  <button type="button" class="btn btn-warning" id="btnDevolverPendienteModal" style="display:none;">
+    <i class="bi bi-arrow-counterclockwise me-1"></i>Devolver a Pendiente
+  </button>
+{% endif %}
+          <button type="submit" class="btn btn-primary" id="btnEnviarOperacion">
+            <i class="bi bi-check-circle me-1"></i>Enviar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<!-- Definir current_user para JavaScript -->
+<script>
+    const current_user = {
+        role: "{{ user.role | default('') }}",
+        id: "{{ user.id | default('') }}"
+    };
+</script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script>
+// ------------------------ SISTEMA DE NOTIFICACIONES, SONIDO Y SOCKET (CORREGIDO) ------------------------
+
+// Deduplicador local para evitar mostrar dos veces la misma notificación en la sesión
+const _localSeenNotifs = new Set();
+
+// showNotification delega a QC.showNotification si existe, sino usa fallback local.
+// Solo muestra para role 'Operador'.
+function showNotification(data) {
+    if (current_user.role !== 'Operador') return;
+
+    const key = (data && (data.operation_id || data.client_id || data.mensaje)) || ('k_' + Date.now() + '_' + Math.floor(Math.random()*1000));
+    if (_localSeenNotifs.has(String(key))) return;
+    _localSeenNotifs.add(String(key));
+
+    if (window.QC && typeof window.QC.showNotification === 'function') {
+        try { window.QC.showNotification(data); }
+        catch (e) {
+            console.warn('QC.showNotification falló, usando fallback local:', e);
+            _fallbackShowNotification(data);
+        }
+    } else {
+        _fallbackShowNotification(data);
+    }
+}
+
+function _fallbackShowNotification(data) {
+    try {
+        const containerId = 'notificationContainer';
+        let container = document.getElementById(containerId);
+        if (!container) {
+            container = document.createElement('div');
+            container.id = containerId;
+            container.className = 'notification-container';
+            document.body.appendChild(container);
+        }
+        const notificationId = 'notif-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+        const typeClass = data && data.tipo === 'nuevo_cliente' ? 'nuevo-cliente' : 'nueva-operacion';
+        const icon = data && data.tipo === 'nuevo_cliente' ? '👤' : '💼';
+        const title = data && data.tipo === 'nuevo_cliente' ? 'Nuevo Cliente Registrado' : 'Nueva Operación Creada';
+        const msg = (data && data.mensaje) ? data.mensaje : (data && data.cliente ? data.cliente : '');
+        const ts = (data && data.timestamp) ? data.timestamp : new Date().toLocaleTimeString();
+
+        const html = `
+            <div class="notification ${typeClass}" id="${notificationId}">
+                <div class="notification-icon">${icon}</div>
+                <div class="notification-content">
+                    <div class="notification-title">${title}</div>
+                    <div class="notification-message">${msg}</div>
+                    <div class="notification-time">${ts}</div>
+                </div>
+                <button class="notification-close" data-notif="${notificationId}">×</button>
+            </div>
+        `;
+        container.insertAdjacentHTML('afterbegin', html);
+
+        const btn = document.querySelector(`#${notificationId} .notification-close`);
+        if (btn) btn.addEventListener('click', () => closeNotification(notificationId));
+
+        setTimeout(() => closeNotification(notificationId), 8000);
+    } catch (e) {
+        console.error('Error mostrando notificación fallback:', e);
+    }
+}
+
+function closeNotification(id) {
+    const notification = document.getElementById(id);
+    if (notification) {
+        notification.classList.add('hiding');
+        setTimeout(() => {
+            if (notification.parentNode) notification.parentNode.removeChild(notification);
+        }, 300);
+    }
+}
+
+// Sonido: preferimos QC.playNotificationSound si existe, sino fallback local seguro.
+function playNotificationSoundSafe() {
+    if (window.QC && typeof window.QC.playNotificationSound === 'function') {
+        try { window.QC.playNotificationSound(); return; } catch (e) { console.warn('QC.playNotificationSound fallo', e); }
+    }
+    // Fallback local con envelope suave + reanudación en primer gesto del usuario
+    try {
+        if (!window.__qc_audio_ctx) {
+            window.__qc_audio_ctx = new (window.AudioContext || window.webkitAudioContext)();
+            function _resume() {
+                if (window.__qc_audio_ctx && window.__qc_audio_ctx.state === 'suspended') {
+                    window.__qc_audio_ctx.resume().catch(()=>{});
+                }
+                document.removeEventListener('click', _resume);
+                document.removeEventListener('keydown', _resume);
+                document.removeEventListener('touchstart', _resume);
+            }
+            document.addEventListener('click', _resume, { once: true });
+            document.addEventListener('keydown', _resume, { once: true });
+            document.addEventListener('touchstart', _resume, { once: true });
+        }
+        const ctx = window.__qc_audio_ctx;
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.linearRampToValueAtTime(0.12, now + 0.01);
+        gain.gain.linearRampToValueAtTime(0.0001, now + 0.26);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.27);
+    } catch (e) {
+        console.warn('playNotificationSoundSafe fallback error', e);
+    }
+}
+
+// Registra el handler para 'notificacion_operador' sobre un socket único.
+// Evita mostrar duplicados usando deduplicación global y local.
+function registerNotificationHandler(sock) {
+    if (!sock || typeof sock.on !== 'function') return;
+
+    // Intentar desregistrar handler previo (si existe)
+    try { sock.off && sock.off('notificacion_operador'); } catch(e){}
+
+    sock.on('notificacion_operador', function(data) {
+        try {
+            const key = (data && (data.operation_id || data.client_id || data.mensaje)) || ('k_' + Date.now() + '_' + Math.floor(Math.random()*1000));
+            // Dedupe global por window.QC._seenNotifications y local
+            if (window.QC && window.QC._seenNotifications && window.QC._seenNotifications.has(String(key))) return;
+            if (window.QC && !window.QC._seenNotifications) window.QC._seenNotifications = new Set();
+            if (window.QC) window.QC._seenNotifications.add(String(key));
+            if (_localSeenNotifs.has(String(key))) return;
+            _localSeenNotifs.add(String(key));
+
+            // Mostrar y sonar (ambos seguros)
+            showNotification(data);
+            playNotificationSoundSafe();
+        } catch (e) {
+            console.error('Error en handler notificacion_operador:', e);
+        }
+    });
+}
+
+// ------------------------ FIN SISTEMA NOTIFICACIONES ------------------------
+
+// ========== VARIABLES GLOBALES ==========
+let operacionActual = null;
+let abonos = [];
+let pagos = [];
+let flujoBancario = [];
+let cuentasCargo = [];
+let cuentasDestino = [];
+let cuentasBancariasCliente = [];
+let currentClientId = null;
+let pollingInterval = null;
+
+// Cache de selectores para performance
+const $modalOperacion = $('#modalOperacion');
+const $abonosContainer = $('#abonosContainer');
+const $pagosContainer = $('#pagosContainer');
+const $bannerOperacion = $('#bannerOperacion');
+const $bannerPagos = $('#bannerPagos');
+const $btnEnviarOperacion = $('#btnEnviarOperacion');
+const $csrfOperacion = () => $('#csrf_token_operacion').val();
+
+// ========== UTILIDADES ==========
+function formatNumber(num) {
+    if (num === null || num === undefined || isNaN(num)) return '';
+    return Number(num).toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function safeFloat(v) {
+    const n = parseFloat((v||'').toString().replace(/,/g, ''));
+    return isNaN(n) ? 0 : n;
+}
+
+// ========== FETCH / POLLING and RENDER TABLE ==========
+function getAccionButtonsHtml(op) {
+    var st = (op.status || '').toLowerCase();
+    return getAcciones(op); // reutiliza la función que mantiene la lógica por roles
+}
+
+function fetchAndUpdateOperations() {
+    // Solicitamos explícitamente solo las operaciones del día para el menú "Operaciones"
+    $.getJSON('/api/operations_poll?only_today=1', function(data) {
+        if (!data || !data.operations) return;
+        let table = $('#operationsTable').DataTable();
+        table.clear(false);
+        data.operations.forEach(op => {
+            const row = [
+                op.operation_id,
+                op.doc_number,
+                op.client_name,
+                op.operation_type,
+                '$ ' + parseFloat(op.amount_usd).toLocaleString('en-US', {minimumFractionDigits:2}),
+                parseFloat(op.exchange_rate).toFixed(4),
+                'S/ ' + parseFloat(op.amount_pen).toLocaleString('es-PE', {minimumFractionDigits:2}),
+                '<span class="badge bg-' +
+                    (op.status === 'Completada' ? 'success' :
+                    (op.status === 'En proceso' || op.status === 'P-En Proceso') ? 'info' :
+                    op.status === 'Cancelado' ? 'danger' : 'warning') + '">' + op.status + '</span>',
+                getAccionButtonsHtml(op),
+                op.created_at
+            ];
+            if (current_user && (current_user.role === 'Master' || current_user.role === 'Operador')) {
+                row.push(op.username || '');
+            }
+            table.row.add(row);
+        });
+        table.draw(false);
+        // reattach events
+        setTimeout(setupTableEvents, 50);
+    }).fail(function(err) {
+        console.error('Error fetch operations:', err);
+    });
+}
+
+// ========== TABLE EVENTS ==========
+function setupTableEvents() {
+    // Delegated events (avoid re-binding multiple handlers)
+    $(document).off('click.ops.view').on('click.ops.view', '.view-operation', function(e) {
+        e.preventDefault();
+        const opId = $(this).data('operation-id');
+        if (!opId) return console.error('Missing operation id for view');
+        openOperationModal(opId);
+    });
+
+    $(document).off('click.ops.cancel').on('click.ops.cancel', '.cancel-operation', function(e) {
+        e.preventDefault();
+        const opId = $(this).data('operation-id');
+        if (!opId) return console.error('Missing operation id for cancel');
+        cancelOperation(opId);
+    });
+
+    // Copy account button
+    $(document).off('click.ops.copy').on('click.ops.copy', '.btn-copy-cuenta', function() {
+        const cuenta = $(this).data('cuenta') + '';
+        if (!cuenta) return;
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(cuenta).then(() => {
+                // Optional feedback
+            });
+        } else {
+            const $tmp = $('<input>');
+            $('body').append($tmp);
+            $tmp.val(cuenta).select();
+            document.execCommand('copy');
+            $tmp.remove();
+        }
+    });
+}
+
+
+// ========== OPEN / POPULATE MODAL ==========
+function populateOperationInfo(data) {
+    $('#modal-operation-id').text(data.operation_id || '-');
+    $('#modal-client-name').text(data.client_name || '-');
+    $('#modal-operation-type').text(data.operation_type || '-');
+    $('#modal-amount-usd').text('$ ' + (parseFloat(data.amount_usd || 0).toLocaleString('en-US', {minimumFractionDigits: 2})));
+    $('#modal-exchange-rate').text((data.exchange_rate || 0).toFixed ? parseFloat(data.exchange_rate || 0).toFixed(4) : (data.exchange_rate || '-'));
+    $('#modal-amount-pen').text('S/ ' + (parseFloat(data.amount_pen || 0).toLocaleString('es-PE', {minimumFractionDigits: 2})));
+    $('#modal-operation-date').text(data.created_at || '-');
+
+    // Estado con badge
+    const status = data.status || '';
+    let statusClass = 'bg-secondary';
+    if (status === 'Completada') statusClass = 'bg-success';
+    else if (status === 'En proceso' || status === 'P-En Proceso') statusClass = 'bg-info';
+    else if (status === 'Cancelado') statusClass = 'bg-danger';
+    else if (status === 'Pendiente') statusClass = 'bg-warning';
+    $('#modal-operation-status').html(`<span class="badge ${statusClass} badge-estado">${status}</span>`);
+
+    // Modificado info
+    if (data.modificado && data.modificado == 1) {
+        let fechaMod = data.updated_at || '';
+        if (fechaMod) {
+            let fecha = new Date(fechaMod);
+            $('#modal-operation-modified-info').text('Modificado - ' + fecha.toLocaleString('es-PE', {
+                year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+            }));
+        } else {
+            $('#modal-operation-modified-info').text('Modificado');
+        }
+    } else {
+        $('#modal-operation-modified-info').text('');
+    }
+}
+
+// [OPTIMIZACIÓN] Consolidated function to show/hide operator final info
+function showOperatorFilesAndNotes() {
+    if (!operacionActual) {
+        $('#info-operador-finalizada').hide();
+        return;
+    }
+    const st = (operacionActual.status || '').toLowerCase();
+    const tieneArchivosOperador = Array.isArray(operacionActual.operador_file) && operacionActual.operador_file.length > 0;
+    const tieneComentarioOperador = !!(operacionActual.operador_comentarios && operacionActual.operador_comentarios.trim());
+
+    // Mostrar la sección también para Operador cuando el estado es Procesado
+    const mostrarPorEstado = (st === "procesado" || st === "p-procesado" || st === "completada");
+    const mostrarParaOperadorProcesado = (current_user.role === 'Operador' && st === 'procesado');
+
+    if ((mostrarPorEstado && (tieneArchivosOperador || tieneComentarioOperador)) || mostrarParaOperadorProcesado) {
+        $('#info-operador-finalizada').show();
+        let html = '';
+        if (tieneArchivosOperador) {
+            // Mostrar enlace genérico sin mostrar el nombre del archivo
+            html = operacionActual.operador_file.map(f =>
+                `<div><a href="/uploads/${encodeURIComponent(f)}" target="_blank" rel="noopener noreferrer">Ver comprobante del operador</a></div>`
+            ).join('');
+        } else {
+            html = '<em>No hay comprobantes del operador</em>';
+        }
+        $('#info-operador-archivos').html(html);
+        $('#info-operador-comentario').val(operacionActual.operador_comentarios || '');
+    } else {
+        $('#info-operador-finalizada').hide();
+        $('#info-operador-archivos').empty();
+        $('#info-operador-comentario').val('');
+    }
+}
+
+// Open modal and load all data
+function openOperationModal(operationId) {
+    $.getJSON('/api/operation/' + operationId + '/full', function(data) {
+        if (!data) {
+            alert('No se pudieron cargar los datos de la operación');
+            return;
+        }
+        operacionActual = data;
+        populateOperationInfo(data);
+
+        // Abonos y pagos - map to internal structures (keep shape)
+        abonos = (data.abonos && data.abonos.length) ? data.abonos.map(a => ({
+            monto: a.amount,
+            codigo: a.nro_operacion,
+            file_url: a.comprobante ? '/uploads/' + a.comprobante : null,
+            account_number: a.cuenta_cargo || data.source_account
+        })) : [{monto:'',codigo:'',file_url:null,account_number: data.source_account}];
+
+        pagos = (data.pagos && data.pagos.length) ? data.pagos.map(p => ({
+            monto: p.amount,
+            account_number: p.cuenta_destino || data.destination_account
+        })) : [{monto:'',account_number: data.destination_account}];
+
+        // Cargar cuentas destino/cargo según moneda
+        const monedaDestino = data.operation_type === 'Compra' ? 'Soles' : 'Dólares';
+        const monedaCargo = data.operation_type === 'Compra' ? 'Dólares' : 'Soles';
+
+        $.when(
+            $.getJSON(`/api/client/${data.client_id}/accounts/${monedaDestino}`),
+            $.getJSON(`/api/client/${data.client_id}/accounts/${monedaCargo}`)
+        ).done(function(destAccounts, cargoAccounts) {
+            cuentasDestino = Array.isArray(destAccounts[0]) ? destAccounts[0] : destAccounts;
+            cuentasCargo = Array.isArray(cargoAccounts[0]) ? cargoAccounts[0] : cargoAccounts;
+
+            renderBannerOperacion(data);
+            renderBannerPagos(data);
+            renderAbonos();
+            renderPagos();
+            validarTotalAbonadoYCampos();
+            validarTotalPagadoYCampos();
+            configureModalInterface();
+            showOperatorFilesAndNotes();
+            $modalOperacion.modal('show');
+        }).fail(function() {
+            // Fallback: still render with what we have
+            renderBannerOperacion(data);
+            renderBannerPagos(data);
+            renderAbonos();
+            renderPagos();
+            configureModalInterface();
+            showOperatorFilesAndNotes();
+            $modalOperacion.modal('show');
+        });
+    }).fail(function(xhr, status, err) {
+        console.error("Error al cargar operación:", status, err);
+        alert('Error al cargar los datos de la operación: ' + (xhr.responseText || status));
+    });
+}
+
+// ========== CANCELAR OPERACIÓN ==========
+function cancelOperation(operationId) {
+    if (!confirm('¿Está seguro de que desea cancelar esta operación?')) return;
+    $.ajax({
+        url: '/api/operation/' + operationId + '/cancelar',
+        type: 'POST',
+        data: { csrf_token: $csrfOperacion() },
+        success: function(resp) {
+            if (resp && resp.success) {
+                alert('Operación cancelada exitosamente');
+                fetchAndUpdateOperations();
+            } else {
+                alert('Error al cancelar la operación: ' + (resp.error || 'Error desconocido'));
+            }
+        },
+        error: function(xhr) {
+            alert('Error al cancelar la operación: ' + (xhr.responseText || xhr.statusText));
+        }
+    });
+}
+
+// ========== BANNERS, ABONOS Y PAGOS RENDER ==========
+function renderBannerOperacion(op) {
+    let html = '';
+    const usd = safeFloat(op.amount_usd);
+    const tc = safeFloat(op.exchange_rate);
+    if (op.operation_type === 'Compra' && usd) {
+        html = `<div class="banner-compra"><b>Cliente debe abonar ${usd.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})} dólares</b></div>`;
+    } else if (op.operation_type === 'Venta' && usd && tc) {
+        html = `<div class="banner-venta"><b>Cliente debe abonar ${ (usd*tc).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2}) } soles</b></div>`;
+    } else {
+        html = `<div class="banner-venta"><b>Datos de operación incompletos</b></div>`;
+    }
+    $bannerOperacion.html(html);
+}
+
+function renderBannerPagos(op) {
+    let html = '';
+    const usd = safeFloat(op.amount_usd);
+    const tc = safeFloat(op.exchange_rate);
+    if (op.operation_type === 'Compra' && usd && tc) {
+        html = `<div class="banner-venta"><b>CoriCash debe pagar ${ (usd*tc).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2}) } soles</b></div>`;
+    } else if (op.operation_type === 'Venta' && usd) {
+        html = `<div class="banner-compra"><b>CoriCash debe pagar ${ usd.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) } dólares</b></div>`;
+    } else {
+        html = '';
+    }
+    $bannerPagos.html(html);
+}
+
+// [OPTIMIZACIÓN] Uso de forEach y plantillas limpias
+function renderAbonos() {
+    $abonosContainer.empty();
+    const tcRaw = operacionActual && operacionActual.exchange_rate ? operacionActual.exchange_rate : '';
+    const tc = (!isNaN(parseFloat(tcRaw)) && tcRaw !== '') ? parseFloat(tcRaw).toFixed(4) : tcRaw;
+    const allAccounts = (cuentasCargo || []).concat(cuentasDestino || []);
+
+    abonos.forEach((ab, idx) => {
+        if (!ab.account_number && operacionActual && operacionActual.source_account) {
+            ab.account_number = operacionActual.source_account;
+        }
+        const cuentaActual = ab.account_number || '';
+
+        // Construir opciones incluyendo location (Lima / Provincia)
+        let cuentaOptions = (cuentasCargo || []).map(acc =>
+            `<option value="${acc.account_number}" ${acc.account_number === cuentaActual ? 'selected' : ''}>` +
+                `${acc.location ? (acc.location + ' - ') : ''}${acc.bank} - ${acc.account_number} (${acc.account_type} - ${acc.currency})` +
+            `</option>`
+        ).join('');
+
+        // Si la cuenta actual no forma parte de cuentasCargo (p.ej. cuenta externa), intentar mostrar metadata con location
+        if (cuentaActual && !(cuentasCargo || []).some(acc => acc.account_number === cuentaActual)) {
+            const meta = allAccounts.find(a => a.account_number === cuentaActual);
+            const label = meta ? `${meta.location ? (meta.location + ' - ') : ''}${meta.bank} - ${meta.account_number} (${meta.account_type} - ${meta.currency})` : `${cuentaActual}`;
+            cuentaOptions = `<option value="${cuentaActual}" selected>${label}</option>` + cuentaOptions;
+        } else {
+            cuentaOptions = `<option value="">Seleccionar cuenta de cargo...</option>` + cuentaOptions;
+        }
+
+        let comprobanteHtml = '';
+        if (ab.file_url) {
+            comprobanteHtml = `<a href="${ab.file_url}" target="_blank" class="d-block mt-1">Ver adjunto</a>`;
+        } else if (ab.file && ab.file.name) {
+            comprobanteHtml = `<div class="mt-1"><span class="badge rounded-pill bg-info text-dark" style="font-size:0.9em;">${ab.file.name}</span>
+                                <input type="file" class="form-control abono-file mt-1" accept=".png,.jpg,.jpeg,.pdf" style="padding:2px 4px;"></div>`;
+        } else {
+            comprobanteHtml = `<input type="file" class="form-control abono-file mt-1" accept=".png,.jpg,.jpeg,.pdf" style="padding:2px 4px;">`;
+        }
+
+        const $row = $(`
+        <div class="row abono-row align-items-center mb-2" data-index="${idx}" style="flex-wrap:nowrap;">
+            <div class="col-2" style="min-width:130px;max-width:140px;">
+                <label class="d-block mb-1">Monto</label>
+                <input type="number" min="0" step="0.01" class="form-control abono-monto" value="${ab.monto ?? ''}" required>
+            </div>
+            <div class="col-2" style="min-width:90px;max-width:110px;">
+                <label class="d-block mb-1">Tipo de cambio</label>
+                <input type="text" class="form-control abono-tc force-readonly" value="${tc}" readonly disabled>
+            </div>
+            <div class="col-2" style="min-width:160px;max-width:130px;">
+                <label class="d-block mb-1">Código de operación</label>
+                <input type="text" class="form-control abono-codigo" value="${ab.codigo ?? ''}" required>
+            </div>
+            <div class="col-2" style="min-width:240px;max-width:240px;">
+                <label class="d-block mb-1">Comprobante</label>
+                ${comprobanteHtml}
+            </div>
+            <div class="col-2" style="min-width:300px;max-width:140px;">
+                <label class="d-block mb-1">Cuenta de Cargo</label>
+                <select class="form-select abono-cuenta" data-idx="${idx}" required style="min-width:120px;">
+                    ${cuentaOptions}
+                </select>
+            </div>
+            <div class="col-1 d-flex align-items-end justify-content-center" style="min-width:70px;max-width:80px;">
+                <button type="button" class="btn btn-danger btn-sm btnEliminarAbono mt-2">Eliminar</button>
+            </div>
+        </div>
+        `);
+        $abonosContainer.append($row);
+
+        $row.find('.abono-monto').off('input').on('input', function() {
+            abonos[idx].monto = $(this).val();
+            validarTotalAbonadoYCampos();
+        });
+        $row.find('.abono-codigo').off('input').on('input', function() {
+            abonos[idx].codigo = $(this).val();
+            validarTotalAbonadoYCampos();
+        });
+        $row.find('.abono-file').off('change').on('change', function() {
+            abonos[idx].file = this.files[0];
+            validarTotalAbonadoYCampos();
+        });
+        $row.find('.abono-cuenta').off('change').on('change', function() {
+            const i = $(this).data('idx');
+            abonos[i].account_number = $(this).val();
+        });
+        $row.find('.btnEliminarAbono').off('click').on('click', function() {
+            const i = $(this).closest('.abono-row').data('index');
+            abonos.splice(i, 1);
+            renderAbonos();
+            validarTotalAbonadoYCampos();
+        });
+
+        // Mantener el TC readonly
+        $row.find('.abono-tc.force-readonly').prop('readonly', true).prop('disabled', true);
+    });
+
+    validarTotalAbonadoYCampos();
+}
+
+function setReadOnlyOperacionModal(readOnly) {
+    // Excluir elementos marcados como force-readonly (p.ej. .abono-tc)
+    const $abInputs = $abonosContainer.find('input, select, textarea').not('.force-readonly');
+    const $pagInputs = $pagosContainer.find('input, select, textarea').not('.force-readonly');
+
+    $abInputs.prop('readonly', readOnly).prop('disabled', readOnly);
+    $pagInputs.prop('readonly', readOnly).prop('disabled', readOnly);
+
+    // Asegurar que los elementos forzados permanezcan readonly/disabled siempre
+    $abonosContainer.find('.force-readonly').prop('readonly', true).prop('disabled', true);
+    $pagosContainer.find('.force-readonly').prop('readonly', true).prop('disabled', true);
+
+    if (readOnly) {
+        $('#btnAgregarAbono, #btnAgregarPago').hide();
+        $('.btnEliminarAbono, .btnEliminarPago').hide();
+        $('.abono-file').hide();
+        $btnEnviarOperacion.prop('disabled', true).hide();
+    } else {
+        $('#btnAgregarAbono, #btnAgregarPago').show();
+        $('.btnEliminarAbono, .btnEliminarPago').show();
+        $('.abono-file').show();
+        $btnEnviarOperacion.prop('disabled', false).show();
+    }
+}
+
+// Refuerzo: aplicar readonly al mostrar modal y tras populate
+(function enforceReadonlyTC() {
+    function applyReadonly() {
+        // IMPORTANT: limit readonly enforcement to the "view" modal #modalOperacion only.
+        // This avoids making the "#exchange_rate" field in the "Crear Operación" modal readonly.
+        $('#modalOperacion .abono-tc.force-readonly').prop('readonly', true).prop('disabled', true);
+        $('#modalOperacion .force-readonly').prop('readonly', true).prop('disabled', true);
+        // target exchange_rate only inside #modalOperacion (view modal)
+        $('#modalOperacion #exchange_rate, #modalOperacion input[name="exchange_rate"]').prop('readonly', true).prop('disabled', true);
+        $('#modalOperacion #modal-exchange-rate').find('input,textarea,select').prop('readonly', true).prop('disabled', true);
+    }
+    $(document).ready(applyReadonly);
+    $(document).on('shown.bs.modal', '#modalOperacion', applyReadonly);
+    if (window.populateOperationInfo && typeof window.populateOperationInfo === 'function') {
+        const _orig = window.populateOperationInfo;
+        window.populateOperationInfo = function() {
+            const res = _orig.apply(this, arguments);
+            applyReadonly();
+            return res;
+        };
+    }
+})();
+
+function renderPagos() {
+    $pagosContainer.empty();
+    // Combinar todas las cuentas conocidas para metadata
+    const allAccounts = (cuentasDestino || []).concat(cuentasCargo || []);
+
+    pagos.forEach((pg, idx) => {
+        if (!pg.account_number && operacionActual && operacionActual.destination_account) {
+            pg.account_number = operacionActual.destination_account;
+        }
+        const cuentaActual = pg.account_number || '';
+
+        // Construir opciones desde cuentasDestino incluyendo location
+        let cuentaOptions = (cuentasDestino || []).map(acc =>
+            `<option value="${acc.account_number}" ${acc.account_number === cuentaActual ? 'selected' : ''}>` +
+                `${acc.location ? (acc.location + ' - ') : ''}${acc.bank} - ${acc.account_number} (${acc.account_type} - ${acc.currency})` +
+            `</option>`
+        ).join('');
+
+        // Si la cuentaActual no está en cuentasDestino, buscar metadata en allAccounts e incluir location
+        if (cuentaActual && !(cuentasDestino || []).some(acc => acc.account_number === cuentaActual)) {
+            const meta = allAccounts.find(a => a.account_number === cuentaActual);
+            const label = meta
+                ? `${meta.location ? (meta.location + ' - ') : ''}${meta.bank} - ${meta.account_number} (${meta.account_type} - ${meta.currency})`
+                : `${cuentaActual}`; // fallback al número si no hay metadata
+            cuentaOptions = `<option value="${cuentaActual}" selected>${label}</option>` + cuentaOptions;
+        } else {
+            cuentaOptions = `<option value="">Seleccionar cuenta...</option>` + cuentaOptions;
+        }
+
+        const disabled = (operacionActual && ['procesado','p-procesado'].includes((operacionActual.status||'').toLowerCase())) ? 'disabled' : '';
+
+        const $row = $(`
+        <div class="row pago-row align-items-center mb-2" data-index="${idx}" style="flex-wrap:nowrap;">
+            <div class="col-3" style="min-width:150px;max-width:160px;">
+                <label class="d-block mb-1">Monto</label>
+                <input type="number" min="0" step="0.01" class="form-control pago-monto" value="${pg.monto ?? ''}" required ${disabled}>
+            </div>
+            <div class="col-5" style="min-width:350px;max-width:320px;">
+                <label class="d-block mb-1">Cuenta de destino</label>
+                <div class="d-flex align-items-center">
+                    <select class="form-select pago-cuenta" data-idx="${idx}" required ${disabled}>
+                        ${cuentaOptions}
+                    </select>
+                    <button type="button" class="btn btn-outline-secondary btn-copy-cuenta ms-2" 
+                            title="Copiar número de cuenta"
+                            data-cuenta="${cuentaActual}"
+                            ${disabled}>
+                        <i class="bi bi-files"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-2 d-flex align-items-end justify-content-center" style="min-width:70px;max-width:80px;">
+                <button type="button" class="btn btn-danger btn-sm btnEliminarPago mt-2" ${disabled}>Eliminar</button>
+            </div>
+        </div>
+        `);
+        $pagosContainer.append($row);
+
+        // Listeners
+        $row.find('.pago-monto').off('input').on('input', function() {
+            pagos[idx].monto = $(this).val();
+            validarTotalPagadoYCampos();
+        });
+        $row.find('.pago-cuenta').off('change').on('change', function() {
+            pagos[idx].account_number = $(this).val();
+            validarTotalPagadoYCampos();
+        });
+        $row.find('.btnEliminarPago').off('click').on('click', function() {
+            const i = $(this).closest('.pago-row').data('index');
+            pagos.splice(i, 1);
+            renderPagos();
+            validarTotalPagadoYCampos();
+        });
+    });
+    validarTotalPagadoYCampos();
+}
+
+// ========== VALIDACIONES TOTALES ==========
+function validarTotalAbonadoYCampos() {
+    // Calcula la suma actual de abonos (parsea y maneja valores inválidos)
+    let suma = abonos.reduce((acc, a) => {
+        const v = parseFloat((a.monto || '').toString().replace(/,/g, ''));
+        return acc + (isNaN(v) ? 0 : v);
+    }, 0);
+
+    // Calcula el importe esperado según el tipo de operación
+    let esperado = 0;
+    if (operacionActual) {
+        if (operacionActual.operation_type === 'Compra') {
+            esperado = safeFloat(operacionActual.amount_usd);
+        } else {
+            // Venta -> esperado en soles = USD * TC
+            esperado = safeFloat(operacionActual.amount_usd) * safeFloat(operacionActual.exchange_rate);
+        }
+    }
+
+    // Determina si la suma coincide (tolerancia 0.01)
+    const sumaOk = Math.abs(suma - esperado) < 0.01;
+
+    // Validación de campos mínimos por abono para permitir enviar:
+    // Requiere que exista al menos un abono, y que cada abono tenga monto válido y cuenta de cargo.
+    // NOTA: NO incluimos comprobante ni código en esta validación para que la alerta dependa SOLO de la suma.
+    const camposMinimosOk = abonos.length > 0 && abonos.every(a => {
+        const montoValido = (a.monto !== undefined && a.monto !== null && a.monto !== '' && !isNaN(parseFloat(a.monto)));
+        const tieneCuenta = !!(a.account_number && a.account_number.toString().trim());
+        return montoValido && tieneCuenta;
+    });
+
+    // Mostrar u ocultar la alerta de diferencia: depende ÚNICAMENTE de la suma
+    if (!sumaOk) {
+        // Mostrar solo si hay algo ingresado (evita mostrar alerta con suma 0 inicial)
+        if (suma > 0) {
+            $('#alertaDiferenciaTotal').html(
+                `<div class="alert alert-danger">La suma de los abonos (${suma.toFixed(2)}) no coincide con el importe total de la operación (${esperado.toFixed(2)}).</div>`
+            );
+        } else {
+            $('#alertaDiferenciaTotal').html('');
+        }
+    } else {
+        // Suma OK → quitar la alerta (independientemente de códigos/comprobantes)
+        $('#alertaDiferenciaTotal').html('');
+    }
+
+    // Habilitar/deshabilitar botón ENVIAR:
+    // - Se habilita solo si la suma coincide y los campos mínimos por abono están completos.
+    if (sumaOk && camposMinimosOk) {
+        $btnEnviarOperacion.prop('disabled', false);
+    } else {
+        $btnEnviarOperacion.prop('disabled', true);
+    }
+}
+
+function validarTotalPagadoYCampos() {
+    let suma = pagos.reduce((acc, p) => acc + (parseFloat(p.monto) || 0), 0);
+    let esperado = 0;
+    if (operacionActual) {
+        esperado = operacionActual.operation_type === 'Compra'
+            ? safeFloat(operacionActual.amount_usd) * safeFloat(operacionActual.exchange_rate)
+            : safeFloat(operacionActual.amount_usd);
+    }
+    let valid = pagos.length > 0 && pagos.every(p => p.monto && p.account_number);
+    const sumaOk = Math.abs(suma - esperado) < 0.01;
+    if (!sumaOk || !valid) {
+        $('#alertaDiferenciaTotalPagos').html(suma > 0 ? `<div class="alert alert-danger">La suma de los pagos (${suma.toFixed(2)}) no coincide con el total a pagar (${esperado.toFixed(2)}).</div>` : '');
+        $btnEnviarOperacion.prop('disabled', true);
+    } else {
+        $('#alertaDiferenciaTotalPagos').html('');
+        $btnEnviarOperacion.prop('disabled', false);
+    }
+}
+
+// ========== CONFIGURACIÓN DE INTERFAZ SEGÚN ROL/ESTADO ==========
+function configureModalInterface() {
+    if (!operacionActual) return;
+    const role = current_user.role;
+    const st = (operacionActual.status || '').toLowerCase();
+
+    const isSoloLectura = (
+        st === "en proceso" ||
+        st === "p-en proceso" ||
+        st === "procesado" ||
+        st === "p-procesado" ||
+        (role === "Operador" && st === "pendiente")
+    );
+
+    // Campos abonos/pagos
+    setReadOnlyOperacionModal(isSoloLectura);
+
+        // Botón devolver pendiente para Operador o Master (solo cuando el estado sea "En proceso" o "P-En Proceso")
+    if (role === "Operador" || role === "Master") {
+        $('#btnDevolverPendienteModal').toggle(st === 'en proceso' || st === 'p-en proceso');
+    }
+
+    // Mostrar u ocultar sección extra del operador (inputs para validar)
+    if (role === "Operador") {
+        showOperadorExtraFields(st === "en proceso" || st === "p-en proceso");
+    }
+}
+
+function setReadOnlyOperacionModal(readOnly) {
+    const $abInputs = $abonosContainer.find('input, select, textarea');
+    $abInputs.prop('readonly', readOnly).prop('disabled', readOnly);
+    $pagosContainer.find('input, select, textarea').prop('readonly', readOnly).prop('disabled', readOnly);
+
+    if (readOnly) {
+        $('#btnAgregarAbono, #btnAgregarPago').hide();
+        $('.btnEliminarAbono, .btnEliminarPago').hide();
+        $('.abono-file').hide();
+        $btnEnviarOperacion.prop('disabled', true).hide();
+    } else {
+        $('#btnAgregarAbono, #btnAgregarPago').show();
+        $('.btnEliminarAbono, .btnEliminarPago').show();
+        $('.abono-file').show();
+        $btnEnviarOperacion.prop('disabled', false).show();
+    }
+}
+
+function showOperadorExtraFields(show) {
+    if (show) {
+        $('#operador-extra-fields').show();
+        $('#input-comprobantes-operador').val('');
+        $('#operador-comentario').val('');
+        $('#btnEnviarOperacionOperador').prop('disabled', true);
+    } else {
+        $('#operador-extra-fields').hide();
+        $('#input-comprobantes-operador').val('');
+        $('#operador-comentario').val('');
+    }
+}
+
+// ========== CLIENT / ACCOUNT HELPERS ==========
+function searchClientNombreYCuenta() {
+    const docNumber = $('#doc_number').val();
+    if (docNumber.length >= 8) {
+        $.getJSON('/api/search_clients?q=' + docNumber, function(response) {
+            if (response && response.length > 0) {
+                $('#client_name').val(response[0].name);
+                currentClientId = response[0].id;
+                $('#client_db_id').val(response[0].id);
+                updateAccountOptions();
+            } else {
+                $('#client_name').val('');
+                currentClientId = null;
+                $('#client_db_id').val('');
+                $('#source_account, #destination_account').html('<option value="">Seleccionar cuenta...</option>');
+            }
+        }).fail(function() {
+            $('#client_name').val('');
+            currentClientId = null;
+            $('#client_db_id').val('');
+        });
+    } else {
+        $('#client_name').val('');
+        currentClientId = null;
+        $('#client_db_id').val('');
+        $('#source_account, #destination_account').html('<option value="">Seleccionar cuenta...</option>');
+    }
+}
+
+function updateAccountOptions() {
+    const clientId = currentClientId;
+    const opType = $('#operation_type').val();
+    if (!clientId) {
+        $('#source_account, #destination_account').html('<option value="">Seleccionar cuenta...</option>');
+        return;
+    }
+    const monedaCargo = opType === 'Compra' ? 'Dólares' : 'Soles';
+    const monedaDestino = opType === 'Compra' ? 'Soles' : 'Dólares';
+
+    $.getJSON(`/api/client/${clientId}/accounts/${monedaCargo}`, function(accounts) {
+        const html = ['<option value="">Seleccionar cuenta...</option>']
+            .concat(accounts.map(acc => `<option value="${acc.account_number}">${acc.location ? (acc.location + ' - ') : ''}${acc.bank} - ${acc.account_number} (${acc.currency}, ${acc.account_type})</option>`))
+            .join('');
+        $('#source_account').html(html);
+    });
+    $.getJSON(`/api/client/${clientId}/accounts/${monedaDestino}`, function(accounts) {
+        const html = ['<option value="">Seleccionar cuenta...</option>']
+            .concat(accounts.map(acc => `<option value="${acc.account_number}">${acc.location ? (acc.location + ' - ') : ''}${acc.bank} - ${acc.account_number} (${acc.currency}, ${acc.account_type})</option>`))
+            .join('');
+        $('#destination_account').html(html);
+    });
+}
+
+// ========== ENVÍO ABONOS Y PAGOS (REUTILIZA BACKEND) ==========
+function enviarAbonosYPagos(callback) {
+    // If operation pending and accounts changed, update them first (synchronous via confirm)
+    if (operacionActual && operacionActual.status === 'Pendiente') {
+        const currentSource = $('#modal-source-account').val() || operacionActual.source_account;
+        const currentDest = $('#modal-dest-account').val() || operacionActual.destination_account;
+        if (currentSource !== operacionActual.source_account || currentDest !== operacionActual.destination_account) {
+            if (!confirm('¿Desea guardar los cambios en las cuentas antes de continuar?')) {
+                return false;
+            }
+            const formDataCuentas = new FormData();
+            formDataCuentas.append('source_account', currentSource);
+            formDataCuentas.append('destination_account', currentDest);
+            formDataCuentas.append('csrf_token', $csrfOperacion());
+            $.ajax({
+                url: `/api/operation/${operacionActual.operation_id}/actualizar_cuentas`,
+                method: 'POST',
+                data: formDataCuentas,
+                processData: false,
+                contentType: false,
+                async: false,
+                success: function(response) {
+                    if (response.success) {
+                        operacionActual.source_account = currentSource;
+                        operacionActual.destination_account = currentDest;
+                    } else {
+                        alert('Error al actualizar cuentas: ' + (response.error || 'Error desconocido'));
+                        return false;
+                    }
+                },
+                error: function(xhr) {
+                    alert('Error al actualizar cuentas: ' + (xhr.responseText || xhr.statusText));
+                    return false;
+                }
+            });
+        }
+    }
+
+    // Build FormData for abonos
+    const formDataAbonos = new FormData();
+    const abonosValidos = abonos.filter(ab => ab.monto && ab.codigo && ab.account_number);
+    abonosValidos.forEach((ab, i) => {
+        formDataAbonos.append('montos[]', ab.monto);
+        formDataAbonos.append('nro_operaciones[]', ab.codigo);
+        formDataAbonos.append('cuentas_cargo[]', ab.account_number || '');
+        if (ab.file) formDataAbonos.append('adjuntos[]', ab.file);
+    });
+    // Ensure adjuntos length matches montos length (backend expects arrays aligned)
+    while (formDataAbonos.getAll('adjuntos[]').length < abonosValidos.length) {
+        formDataAbonos.append('adjuntos[]', new Blob());
+    }
+    formDataAbonos.append('csrf_token', $csrfOperacion());
+
+    $.ajax({
+        url: '/api/operation/' + operacionActual.operation_id + '/add_abono',
+        method: 'POST',
+        data: formDataAbonos,
+        processData: false,
+        contentType: false,
+        success: function(resp) {
+            if (pagos && pagos.length > 0) {
+                const formDataPagos = new FormData();
+                pagos.forEach(pg => {
+                    formDataPagos.append('montos_pagos[]', pg.monto);
+                    formDataPagos.append('cuentas_destino[]', pg.account_number || '');
+                });
+                formDataPagos.append('csrf_token', $csrfOperacion());
+                $.ajax({
+                    url: '/api/operation/' + operacionActual.operation_id + '/add_pago',
+                    method: 'POST',
+                    data: formDataPagos,
+                    processData: false,
+                    contentType: false,
+                    success: function(resp2) {
+                        if (callback) callback();
+                    },
+                    error: function(xhr) {
+                        alert('Error al enviar los pagos: ' + (xhr.responseText || xhr.statusText));
+                    }
+                });
+            } else {
+                if (callback) callback();
+            }
+        },
+        error: function(xhr) {
+            alert('Error al enviar los abonos: ' + (xhr.responseText || xhr.statusText));
+        }
+    });
+}
+
+// ========== EVENTOS GENERALES Y LÓGICA DE FORMULARIOS ==========
+$(document).ready(function() {
+    // Inicializar DataTable
+    const table = $('#operationsTable').DataTable({
+        order: [[0, "desc"]],
+        language: { url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json' },
+        drawCallback: function() {
+            setTimeout(setupTableEvents, 50);
+        }
+    });
+
+    // Socket (notifications + operations refresh) - único socket compartido y reuso si existe
+    let socket;
+    if (window.QC && window.QC.socket) {
+        socket = window.QC.socket;
+        console.debug('Reusando socket existente en window.QC.socket');
+    } else {
+        socket = io({transports: ['websocket', 'polling']});
+        window.QC = window.QC || {};
+        window.QC.socket = socket;
+    }
+
+    socket.on('connect', () => console.log("Socket OPERACIONES conectado:", socket.id));
+
+    // Si soy Operador, registrar handler de notificaciones en este socket (no crear otro socket)
+    if (current_user.role === 'Operador') {
+        registerNotificationHandler(socket);
+    } else {
+        // Asegurar que no haya leftover handlers para notificacion_operador si no corresponde
+        try { socket.off && socket.off('notificacion_operador'); } catch(e) {}
+    }
+
+    // Eventos que siempre queremos escuchar (refrescar tabla)
+    ['nueva_operacion','operacion_actualizada','operacion_cancelada'].forEach(evt => {
+        try { socket.off && socket.off(evt); } catch(e) {}
+        socket.on(evt, () => { fetchAndUpdateOperations(); });
+    });
+
+    // Polling
+    pollingInterval = setInterval(fetchAndUpdateOperations, 3000);
+    $modalOperacion.on('show.bs.modal', () => clearInterval(pollingInterval));
+    $modalOperacion.on('hidden.bs.modal', () => { pollingInterval = setInterval(fetchAndUpdateOperations, 3000); });
+
+    // Inicial load
+    fetchAndUpdateOperations();
+
+    // Form action - create operation
+    $('#operationModal').on('show.bs.modal', function() {
+        $('#operationForm')[0].reset();
+        $('#source_account, #destination_account').html('<option value="">Seleccionar cuenta...</option>');
+        $('#client_db_id').val('');
+        $('#alertaCuentas').addClass('d-none').text('');
+        if (current_user.role === 'Trader') {
+            $('#btnEnviarOperacion').prop('disabled', false);
+        }
+    });
+
+    $('#amount_usd, #exchange_rate').on('input blur', function() {
+        const usd = $('#amount_usd').val().replace(/,/g, '');
+        const tc = $('#exchange_rate').val();
+        const am = parseFloat(usd) || 0;
+        const t = parseFloat(tc) || 0;
+        if (am && t) {
+            $('#amount_pen').val(formatNumber(am * t));
+        } else {
+            $('#amount_pen').val('');
+        }
+    });
+
+    // Búsqueda en vivo
+    $('#searchOperations').on('input', function() {
+        table.search($(this).val()).draw();
+    });
+
+    // Crear operación
+    $('#btnEnviarOperacion').off('click').on('click', function() {
+        const usdRaw = $('#amount_usd').val().replace(/,/g, '').trim();
+        const tcRaw = $('#exchange_rate').val().replace(/,/g, '').trim();
+        $('#amount_usd').val(usdRaw);
+        $('#exchange_rate').val(tcRaw);
+
+        if (!usdRaw || isNaN(usdRaw) || parseFloat(usdRaw) <= 0) { alert('Importe USD inválido'); $('#amount_usd').focus(); return; }
+        if (!tcRaw || isNaN(tcRaw) || parseFloat(tcRaw) <= 0) { alert('Tipo de cambio inválido'); $('#exchange_rate').focus(); return; }
+        if (!$('#source_account').val()) { alert('Debe seleccionar una cuenta de cargo'); $('#source_account').focus(); return; }
+        if (!$('#destination_account').val()) { alert('Debe seleccionar una cuenta de destino'); $('#destination_account').focus(); return; }
+
+        const form = $('#operationForm')[0];
+        const formData = new FormData(form);
+        $.ajax({
+            url: '/create_operation',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success(resp) {
+                if (typeof resp === "object" && resp.success === false && resp.error) {
+                    alert(resp.error); return;
+                }
+                alert('Operación creada exitosamente');
+                $('#operationModal').modal('hide');
+                location.reload();
+            },
+            error(xhr) {
+                try {
+                    const parsed = JSON.parse(xhr.responseText || '{}');
+                    alert(parsed.error || 'Error al crear la operación: ' + (xhr.responseText || xhr.statusText));
+                } catch(e) {
+                    alert('Error al crear la operación: ' + (xhr.responseText || xhr.statusText));
+                }
+            }
+        });
+    });
+
+    // ABONOS / PAGOS events
+    $(document).on('click', '#btnAgregarAbono', function() {
+        abonos.push({monto:'',codigo:'',file_url:null});
+        renderAbonos();
+        validarTotalAbonadoYCampos();
+    });
+    $(document).on('click', '#btnAgregarPago', function() {
+        pagos.push({monto:'',account_number:null});
+        renderPagos();
+        validarTotalPagadoYCampos();
+    });
+
+    // Envío del modal VER (formOperacion) - maneja flujos por role/state
+    $(document).off('submit', '#formOperacion').on('submit', '#formOperacion', function(e) {
+        e.preventDefault();
+        // Operador validando comprobantes cuando estado = En proceso
+        if (current_user.role === 'Operador' && operacionActual && (operacionActual.status||'').toLowerCase() === 'en proceso') {
+            const files = $('#input-comprobantes-operador')[0].files;
+            if (!files || files.length === 0) { alert('Debes adjuntar al menos un comprobante.'); return; }
+            const comentario = $('#operador-comentario').val();
+            const formData = new FormData();
+            for (let i=0;i<files.length;i++) formData.append('operador_comprobantes[]', files[i]);
+            formData.append('operador_comentario', comentario);
+            formData.append('csrf_token', $csrfOperacion());
+            $.ajax({
+                url: '/api/operation/' + operacionActual.operation_id + '/validar_operador',
+                method: 'POST',
+                data: formData,
+                processData: false, contentType: false,
+                success() { $('#modalOperacion').modal('hide'); fetchAndUpdateOperations(); },
+                error(xhr) { alert('Error al validar la operación: ' + (xhr.responseText || xhr.statusText)); }
+            });
+            return;
+        }
+
+        // Operador viendo procesado: cerrar
+        if (current_user.role === 'Operador' && operacionActual && (operacionActual.status||'').toLowerCase() === 'procesado') {
+            $('#modalOperacion').modal('hide');
+            return;
+        }
+
+        // Trader/Master flow - enviar abonos y pagos
+        enviarAbonosYPagos(function() {
+            $('#modalOperacion').modal('hide');
+            fetchAndUpdateOperations();
+        });
+    });
+
+    // Devolver a pendiente (Operador / Master) - handler para el botón del modal VER
+    $(document).on('click', '#btnDevolverPendienteModal', function() {
+        if (!operacionActual || !operacionActual.operation_id) { alert('No se encontró la operación actual.'); return; }
+        if (!confirm('¿Seguro que deseas devolver esta operación a estado Pendiente?')) return;
+        $.ajax({
+            url: `/api/operation/${operacionActual.operation_id}/devolver_pendiente`,
+            method: 'POST',
+            data: { csrf_token: $csrfOperacion() },
+            success(resp) {
+                if (resp && resp.success) {
+                    alert('Operación devuelta a pendiente correctamente.');
+                    $('#modalOperacion').modal('hide');
+                    fetchAndUpdateOperations();
+                } else {
+                    alert('Error: ' + (resp.error || 'Error desconocido'));
+                }
+            },
+            error(xhr) { alert('Error al procesar la solicitud.'); console.error(xhr); }
+        });
+    });
+
+    // Edit USD modal handling (kept behavior)
+    // ... same handlers as original but using event delegation to avoid duplicates
+    $(document).on('click', '#btn-edit-usd', function(e) {
+        e.preventDefault();
+        if (!operacionActual || !operacionActual.operation_id) return;
+        const opEstado = (operacionActual.status || '').trim().toLowerCase();
+        if (opEstado !== 'pendiente') { alert('Solo puedes editar cuando la operación está en estado Pendiente.'); return; }
+        $('#edit_importe_usd').val(parseFloat(operacionActual.amount_usd || 0));
+        $('#modalEditarImporteUSD').modal('show');
+    });
+
+    // Agregar modal editar importe USD (mantener compatibilidad)
+    if (!$('#modalEditarImporteUSD').length) {
+        $('body').append(`
+        <div class="modal fade" id="modalEditarImporteUSD" tabindex="-1" aria-labelledby="labelEditarImporteUSD" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form id="formEditarImporteUSD">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="labelEditarImporteUSD">Editar Importe USD</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="csrf_token_editar_importe" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-3">
+                                <label for="edit_importe_usd" class="form-label">Nuevo Importe USD</label>
+                                <input type="number" min="0" step="0.01" class="form-control" id="edit_importe_usd" name="amount_usd" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" id="btnGuardarImporteUSD">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        `);
+    }
+
+    $(document).off('submit', '#formEditarImporteUSD').on('submit', '#formEditarImporteUSD', function(e) {
+        e.preventDefault();
+        if (!operacionActual || !operacionActual.operation_id) return;
+        const nuevoImporte = $('#edit_importe_usd').val();
+        const csrf_token = $('#csrf_token_editar_importe').val();
+        if (!nuevoImporte || isNaN(nuevoImporte) || parseFloat(nuevoImporte) <= 0) { alert('Ingrese un importe válido.'); return; }
+        const formData = new FormData();
+        formData.append('amount_usd', nuevoImporte);
+        formData.append('csrf_token', csrf_token);
+        $.ajax({
+            url: '/api/operation/' + operacionActual.operation_id + '/modificar_importe',
+            method: 'POST',
+            data: formData,
+            processData: false, contentType: false,
+            success() {
+                $('#modalEditarImporteUSD').modal('hide');
+                alert('Importe actualizado');
+                // refresh modal and table
+                $.getJSON('/api/operation/' + operacionActual.operation_id + '/full', function(data) {
+                    operacionActual = data;
+                    populateOperationInfo(data);
+                    renderBannerOperacion(data);
+                    renderBannerPagos(data);
+                    validarTotalAbonadoYCampos();
+                    fetchAndUpdateOperations();
+                });
+            },
+            error(xhr) { alert('Error al actualizar el importe: ' + (xhr.responseText || xhr.statusText)); }
+        });
+    });
+
+    // Clean up when modal hidden
+    $modalOperacion.on('hidden.bs.modal', function() {
+        pagos = [];
+        setReadOnlyOperacionModal(false);
+        flujoBancario = [];
+        $('#flujo-cuentas-list').empty();
+        $('#flujo-bancario-container').hide();
+        $('#alertaFlujoBancario').addClass('d-none').text('');
+    });
+});
+
+// ========== FUNCIONES REUTILIZADAS (mantener nombres originales) ==========
+function getAcciones(op) {
+    var acciones = "";
+    var st = (op.status || "").toLowerCase();
+    if (typeof current_user !== 'undefined' && current_user.role === 'Operador') {
+        if (['pendiente','en proceso','p-en proceso','procesado','p-procesado'].includes(st)) {
+            acciones = `<button class="btn btn-info btn-sm view-operation" data-operation-id="${op.operation_id}">Ver</button>`;
+        }
+    } else if (typeof current_user !== 'undefined' && (current_user.role === 'Trader' || current_user.role === 'Master')) {
+        if (st === 'pendiente') {
+            acciones = `<button class="btn btn-info btn-sm view-operation" data-operation-id="${op.operation_id}">Ver</button>
+                        <button class="btn btn-danger btn-sm cancel-operation" data-operation-id="${op.operation_id}" title="Cancelar"><i class="bi bi-x-circle"></i></button>`;
+        } else if (['en proceso','p-en proceso','procesado','p-procesado'].includes(st)) {
+            acciones = `<button class="btn btn-info btn-sm view-operation" data-operation-id="${op.operation_id}">Ver</button>`;
+        }
+    }
+    return acciones;
+}
+</script>
+<script>
+(function(){
+    function setReadonlyViewTC(){
+        const $modal = $('#modalOperacion');
+        if (!$modal.length) return;
+        $modal.find('.abono-tc').prop('readonly', true).prop('disabled', true);
+        $modal.find('.force-readonly').prop('readonly', true).prop('disabled', true);
+        $modal.find('#modal-exchange-rate').find('input,textarea,select').prop('readonly', true).prop('disabled', true);
+    }
+
+    $(document).on('shown.bs.modal', '#modalOperacion', setReadonlyViewTC);
+
+    if (window.populateOperationInfo && typeof window.populateOperationInfo === 'function') {
+        const _orig = window.populateOperationInfo;
+        window.populateOperationInfo = function() {
+            const res = _orig.apply(this, arguments);
+            setReadonlyViewTC();
+            return res;
+        };
+    }
+
+    const modalRoot = document.getElementById('modalOperacion');
+    if (modalRoot) {
+        const obs = new MutationObserver(function() {
+            setReadonlyViewTC();
+        });
+        obs.observe(modalRoot, { childList: true, subtree: true });
+    }
+})();
+</script>
+<script>
+(function(){
+  const MAX_COMPROBANTES = 4;
+  const $list = $('#operador-comprobantes-list');
+  const $hidden = $('#input-comprobantes-operador');
+
+  // Sincroniza todos los file inputs visibles en el input hidden (multiple)
+  function syncHiddenInput() {
+    try {
+      const dt = new DataTransfer();
+      $list.find('.operador-comprobante-item').each(function(){
+        if (this.files && this.files.length) {
+          // añadimos los archivos (por diseño esperamos 1 por input)
+          for (let i=0;i<this.files.length;i++) dt.items.add(this.files[i]);
+        }
+      });
+      $hidden[0].files = dt.files;
+    } catch (e) {
+      console.warn('syncHiddenInput error', e);
+    }
+  }
+
+  // Añade una nueva casilla visible
+  function addComprobanteItem() {
+    const current = $list.find('.comprovante-item').length;
+    if (current >= MAX_COMPROBANTES) {
+      alert('Solo puede adjuntar hasta ' + MAX_COMPROBANTES + ' comprobantes.');
+      return;
+    }
+
+    const $group = $('<div class="input-group comprovante-item" style="min-width:220px;"></div>');
+    const $input = $('<input type="file" class="form-control operador-comprobante-item" accept=".png,.jpg,.jpeg,.pdf">');
+    const $remove = $('<button type="button" class="btn btn-outline-danger btn-sm btn-remove-comprobante" title="Eliminar"><i class="bi bi-x-lg"></i></button>');
+
+    $group.append($input).append($remove);
+    $list.append($group);
+
+    $input.on('change', function(){
+      // Limitamos a 1 archivo por casilla para UX predecible
+      if (this.files && this.files.length > 1) {
+        try {
+          const t = new DataTransfer();
+          t.items.add(this.files[0]);
+          this.files = t.files;
+        } catch(e) {}
+      }
+      // Control global de máximo de archivos
+      const totalSelected = Array.from($list.find('.operador-comprobante-item')).reduce((acc, el) => acc + (el.files && el.files.length ? el.files.length : 0), 0);
+      if (totalSelected > MAX_COMPROBANTES) {
+        alert('Solo puede adjuntar hasta ' + MAX_COMPROBANTES + ' comprobantes.');
+        $(this).val('');
+      }
+      syncHiddenInput();
+      updateRemoveButtons();
+    });
+
+    $remove.on('click', function(){
+      $group.remove();
+      syncHiddenInput();
+      updateRemoveButtons();
+    });
+
+    updateRemoveButtons();
+  }
+
+  function updateRemoveButtons() {
+    const $items = $list.find('.comprovante-item');
+    if ($items.length <= 1) {
+      $items.find('.btn-remove-comprobante').hide();
+    } else {
+      $items.find('.btn-remove-comprobante').show();
+      $items.first().find('.btn-remove-comprobante').hide();
+    }
+  }
+
+  // Si alguien manipula el hidden input fuera (por compatibilidad), reflectarlo
+  $hidden.on('change', function(){
+    if (!this.files || this.files.length === 0) {
+      $list.empty();
+      const $initial = $('<div class="input-group comprovante-item" style="min-width:220px;"></div>');
+      const $input = $('<input type="file" class="form-control operador-comprobante-item" accept=".png,.jpg,.jpeg,.pdf">');
+      const $remove = $('<button type="button" class="btn btn-outline-danger btn-sm btn-remove-comprobante" title="Eliminar" style="display:none;"><i class="bi bi-x-lg"></i></button>');
+      $initial.append($input).append($remove);
+      $list.append($initial);
+      $input.on('change', function(){ syncHiddenInput(); updateRemoveButtons(); });
+      updateRemoveButtons();
+    }
+  });
+
+  $(document).ready(function(){
+    // Hook inicial para el input que ya está en el HTML
+    $list.find('.operador-comprobante-item').each(function(){
+      $(this).on('change', function(){ syncHiddenInput(); updateRemoveButtons(); });
+    });
+    $('#btnAgregarComprobanteOperador').on('click', addComprobanteItem);
+    updateRemoveButtons();
+  });
+})();
+</script>
+<script>
+// Muestra la fecha actual en formato "27 octubre 2025" usando la zona horaria America/Lima
+(function updateOperationsTitleDaily(){
+    function formatPeruDate(dateObj) {
+        // Opciones para "27 octubre 2025"
+        const options = { day: '2-digit', month: 'long', year: 'numeric' };
+        return dateObj.toLocaleDateString('es-ES', Object.assign({}, options, { timeZone: 'America/Lima' }));
+    }
+
+    function nowInLima() {
+        // Construimos Date a partir de la representación en zona Lima para garantizar correcta diferencia de día
+        return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Lima' }));
+    }
+
+    function setTitle() {
+        const el = document.getElementById('operationsDate');
+        if (!el) return;
+        const limaNow = nowInLima();
+        el.textContent = formatPeruDate(limaNow);
+    }
+
+    function scheduleNextMidnightUpdate() {
+        const limaNow = nowInLima();
+        const next = new Date(limaNow);
+        next.setDate(limaNow.getDate() + 1);
+        next.setHours(0, 0, 5, 0); // 00:00:05 Lima time (small buffer)
+        const ms = next.getTime() - limaNow.getTime();
+        setTimeout(function() {
+            setTitle();
+            // Después del primer ajuste, actualizar cada 24h exactas
+            setInterval(setTitle, 24 * 60 * 60 * 1000);
+        }, ms);
+    }
+
+    // Inicial
+    setTitle();
+    scheduleNextMidnightUpdate();
+
+    // También actualizar si el usuario deja la página inactiva y vuelve (visibilitychange)
+    document.addEventListener('visibilitychange', function(){
+        if (!document.hidden) setTitle();
+    });
+})();
+</script>
+<script>
+// Botón: descarga directa de las operaciones del día (sin modal)
+// Calcula la fecha "hoy" en la zona America/Lima y abre el endpoint de descarga con fecha_inicio=fecha_fin=hoy
+(function(){
+    function todayInLimaIsoDate() {
+        // Construye la fecha actual en zona America/Lima y devuelve 'YYYY-MM-DD'
+        const limaNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Lima' }));
+        const yyyy = limaNow.getFullYear();
+        const mm = String(limaNow.getMonth() + 1).padStart(2, '0');
+        const dd = String(limaNow.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
+
+    $(document).on('click', '#btnDownloadOperations', function(e){
+        e.preventDefault();
+        const hoy = todayInLimaIsoDate();
+        const url = `/download_operations_excel?fecha_inicio=${encodeURIComponent(hoy)}&fecha_fin=${encodeURIComponent(hoy)}`;
+        // Abrir en nueva pestaña para permitir la descarga
+        window.open(url, '_blank');
+    });
+})();
+</script>
+{% endblock %}

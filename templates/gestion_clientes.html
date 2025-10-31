@@ -1,0 +1,1350 @@
+{% extends "base.html" %}
+{% block title %}Gestión Clientes - Sistema de Trading de Dólares{% endblock %}
+{% block head %}
+<link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<style>
+    body, .main-content {
+        background: #fff !important;
+        color: #222 !important;
+    }
+    .clientes-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1.5rem 1.5rem 1.5rem 1.5rem;
+    }
+    .clientes-header {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #181d22;
+        letter-spacing: 1px;
+        margin-bottom: 1.1rem;
+    }
+    .clientes-section-title {
+        font-size: 1.13rem;
+        color: #b9a038;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        margin-top: 1.2rem;
+        letter-spacing: .5px;
+    }
+    .card-clientes {
+        background: #f7f7fa;
+        border-radius: 1.1rem;
+        box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+        padding: 1.1rem 1.3rem 1.05rem 1.3rem;
+        border: 2px solid #ececec;
+        margin-bottom: 1.2rem;
+    }
+    .btn-nuevo-cliente {
+        background: #b9a038;
+        color: #fff;
+        font-weight: 600;
+        border-radius: 0.5rem;
+        border: none;
+        padding: 0.65rem 1.2rem;
+        box-shadow: 0 1px 4px rgba(185,160,56,0.09);
+        margin-bottom: 1.2rem;
+        margin-top: 0.5rem;
+    }
+    .btn-nuevo-cliente:hover {
+        background: #a58c2e;
+        color: #fff;
+    }
+    .clientes-table-card {
+        background: #fff;
+        border-radius: 1.1rem;
+        box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+        padding: 1.1rem 1.3rem 1.05rem 1.3rem;
+        border: 2px solid #ececec;
+        margin-bottom: 1.2rem;
+    }
+    .table-clientes {
+        width: 100%;
+        background: transparent;
+        border-radius: 0.8rem;
+        box-shadow: none;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .table-clientes th {
+        background: #f3f3f3;
+        color: #b9a038;
+        font-weight: 700;
+        font-size: 1.01rem;
+        padding-top: .38rem;
+        padding-bottom: .38rem;
+        border-top: none !important;
+        border-bottom: 1.3px solid #e7e7e7 !important;
+    }
+    .table-clientes td {
+        font-size: 0.98rem;
+        padding-top: .27rem;
+        padding-bottom: .27rem;
+        border-top: none !important;
+        border-bottom: 1.3px solid #ececec !important;
+        background: #fff;
+    }
+    .table-clientes tbody tr:last-child td {
+        border-bottom: none !important;
+    }
+    .badge-estado {
+        background: #ffe8b3;
+        color: #8d6700;
+        font-size: 0.97em;
+        padding: 0.36em 0.98em;
+        border-radius: 1em;
+        font-weight: 600;
+        border: 1px solid #f3e2ae;
+    }
+    .badge-estado[data-status="Activo"] {
+        background: #d9f5d0;
+        color: #21521a;
+        border: 1px solid #c5e6bb;
+    }
+    .badge-estado[data-status="Rechazado"] {
+        background: #ffd6d6;
+        color: #a72c2c;
+        border: 1px solid #ffd6d6;
+    }
+
+    /* NEW: spacing between "Documentos adjuntos" and "Cuentas Bancarias" */
+    /* Apply inside modals to avoid affecting other layouts */
+    #clientModal .accounts-section,
+    #registerClientModal .accounts-section {
+        margin-top: 1.1rem; /* a bit more space */
+        margin-bottom: 0.6rem;
+    }
+
+    @media (max-width: 900px) {
+        .clientes-container { max-width: 100vw; padding: 1.2rem 0.3rem; }
+        .card-clientes, .clientes-table-card { padding: 1rem 0.5rem;}
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="clientes-container">
+    <div class="clientes-header">
+        <i class="bi bi-person-lines-fill"></i> Gestión de Clientes
+    </div>
+    <div class="clientes-section-title">
+        Lista de Clientes
+    </div>
+    {% if user.role == 'Trader' or user.role == 'Master' %}
+    <button class="btn-nuevo-cliente" data-bs-toggle="modal" data-bs-target="#registerClientModal">
+        <i class="bi bi-person-plus-fill"></i> Nuevo Cliente
+    </button>
+    {% endif %}
+    
+    <!-- Botón de Descargar para Master -->
+    {% if user.role == 'Master' %}
+    <button class="btn-nuevo-cliente" id="btnDescargarClientes" style="background: #28a745; margin-left: 10px;">
+        <i class="bi bi-download"></i> Descargar
+    </button>
+    {% endif %}
+    <!-- NUEVO BOTÓN: Información (pegar justo después del bloque "Descargar" en gestion_clientes.html) -->
+<button class="btn-nuevo-cliente" id="btnInfoClientes" data-bs-toggle="modal" data-bs-target="#infoQoriCashModal" style="background: #17a2b8; margin-left: 10px;">
+    <i class="bi bi-info-circle"></i> Información
+</button>
+
+    <!-- DOWNLOAD MODAL (AGREGADO) -->
+    <div class="modal fade" id="downloadModal" tabindex="-1" aria-labelledby="downloadModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content" style="border-radius:0.8rem; border:1px solid #ececec;">
+          <div class="modal-header" style="background:#f3f3f3;">
+            <h5 class="modal-title" id="downloadModalLabel" style="color:#0f1724; font-weight:600;">
+              Descargar Clientes
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <p class="small text-muted mb-2">Seleccione el rango de fechas (fecha de registro) para exportar clientes.</p>
+            <div class="row g-2">
+              <div class="col-12">
+                <label class="form-label small" style="color:#b9a038; font-weight:600;">Fecha inicio</label>
+                <input type="date" id="fecha_inicio" class="form-control" />
+              </div>
+              <div class="col-12">
+                <label class="form-label small" style="color:#b9a038; font-weight:600;">Fecha fin</label>
+                <input type="date" id="fecha_fin" class="form-control" />
+              </div>
+            </div>
+            <input type="hidden" id="download_csrf_token" value="">
+          </div>
+          <div class="modal-footer" style="background:#f3f3f3;">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-success btn-sm" id="confirmDownload">Confirmar descarga</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- FIN DOWNLOAD MODAL -->
+
+    <div class="clientes-table-card">
+        <div class="table-responsive">
+            <table id="clientsTable" class="table table-clientes">
+                <thead>
+                    <tr>
+                        <th>ID Cliente</th>
+                        <th>Nombre</th>
+                        <th>Tipo Doc.</th>
+                        <th>N° Doc.</th>
+                        <th>Tipo</th>
+                        <th>Teléfono</th>
+                        <th>Fecha Registro</th>
+                        {% if user.role != 'Trader' %}
+                        <th>Usuario</th>
+                        {% endif %}
+                        <th>Estado</th>
+                        <th>Acciones</th>                        
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for client in clients %}
+                    <tr id="cliente-row-{{ client[1] }}">
+                        <td>{{ client[1] }}</td>
+                        <td>{{ client[5] }}</td>
+                        <td>{{ client[2] }}</td>
+                        <td>{{ client[4] }}</td>
+                        <td>{{ client[3] }}</td>
+                        <td>{{ client[6] }}</td>
+                        <td>{{ client[13] }}</td>
+                        {% if user.role != 'Trader' %}
+                        <td>
+                            {{ client[-1] }}
+                        </td>
+                        {% endif %}
+                        <td>
+                            <span class="badge-estado" data-status="{{ client[12] }}">{{ client[12] }}</span>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-info view-client" data-client-id="{{ client[1] }}">Ver/Editar</button>
+                        </td>                        
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para registrar cliente con estilo visual QoriCash (solo frontend, sin cambiar funcionalidad) -->
+<div class="modal fade" id="registerClientModal" tabindex="-1" aria-labelledby="registerClientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border-radius:1.1rem; box-shadow:0 1px 8px rgba(0,0,0,0.10); border:2px solid #ececec;">
+            <form id="registerClientForm" enctype="multipart/form-data" style="background:#fff; border-radius:1.1rem;">
+		<input type="hidden" name="csrf_token" id="csrf_token_cliente" value="{{ csrf_token() }}">
+                <div class="modal-header" style="background:#f3f3f3; border-bottom:1px solid #ececec;">
+                    <h5 class="modal-title" id="registerClientModalLabel" style="color:#b9a038; font-weight:600;">
+                        <i class="bi bi-person-plus-fill"></i> Crear Nuevo Cliente
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" style="color:#b9a038;">Tipo Documento</label>
+                            <select class="form-select" id="doc_type" name="doc_type" required style="border-radius:0.5rem;">
+                                <option value="">Seleccionar</option>
+                                <option value="DNI">DNI</option>
+                                <option value="Carnet de Extranjería">Carnet de Extranjería</option>
+                                <option value="RUC">RUC</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" style="color:#b9a038;">N° Documento</label>
+                            <input type="text" class="form-control" id="doc_number" name="doc_number" required autocomplete="off" style="border-radius:0.5rem;">
+                        </div>
+
+                        <!-- Nombre compuesto para DNI / Carnet -->
+                        <div id="name-fields-composed" style="display:none; width:100%;">
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <label class="form-label" style="color:#b9a038;">Apellido Paterno</label>
+                                    <input type="text" class="form-control" id="apellido_paterno" name="apellido_paterno" style="border-radius:0.5rem;">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" style="color:#b9a038;">Apellido Materno</label>
+                                    <input type="text" class="form-control" id="apellido_materno" name="apellido_materno" style="border-radius:0.5rem;">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" style="color:#b9a038;">Nombres</label>
+                                    <input type="text" class="form-control" id="nombres" name="nombres" style="border-radius:0.5rem;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Razon social para RUC -->
+                        <div id="name-field-ruc" style="display:none; width:100%;">
+                            <div class="col-12">
+                                <label class="form-label" style="color:#b9a038;">Razón Social</label>
+                                <input type="text" class="form-control" id="name" name="name" style="border-radius:0.5rem;">
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mt-2">
+                            <label class="form-label" style="color:#b9a038;">Tipo de Cliente</label>
+                            <input type="text" class="form-control" id="client_type" name="client_type" readonly style="border-radius:0.5rem;">
+                        </div>
+
+                        <div class="col-md-6 mt-2">
+                            <label class="form-label" style="color:#b9a038;">Teléfono</label>
+                            <input type="text" class="form-control" id="phone" name="phone" style="border-radius:0.5rem;">
+                        </div>
+                        <div class="col-md-12 mt-2">
+                            <label class="form-label" style="color:#b9a038;">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" style="border-radius:0.5rem;">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label" style="color:#b9a038;">Dirección</label>
+                            <input type="text" class="form-control" id="address" name="address" style="border-radius:0.5rem;">
+                        </div>
+                    </div>
+                    <hr>
+                    <!-- Adjuntos Documentales -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label" id="label_doc_front" style="color:#b9a038;">Documento Frontal</label>
+                            <input type="file" class="form-control" id="doc_front" name="doc_front" accept=".jpg,.jpeg,.png,.pdf" style="border-radius:0.5rem; background:#fafbfc;">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" id="label_doc_back" style="color:#b9a038;">Documento Reverso</label>
+                            <input type="file" class="form-control" id="doc_back" name="doc_back" accept=".jpg,.jpeg,.png,.pdf" style="border-radius:0.5rem; background:#fafbfc;">
+                        </div>
+                        <div class="col-md-4 ruc-only" style="display:none;">
+                            <label class="form-label" style="color:#b9a038;">Ficha RUC</label>
+                            <input type="file" class="form-control" id="doc_ru" name="doc_ru" accept=".jpg,.jpeg,.png,.pdf" style="border-radius:0.5rem; background:#fafbfc;">
+                        </div>
+                    </div>
+                    <hr>
+                    <!-- Cuentas Bancarias -->
+                    <div class="mb-2 accounts-section" style="color:#b9a038; font-weight:600;">Cuentas Bancarias</div>
+                    <div id="register-bank-accounts">
+                        <!-- Aquí se agregarán dinámicamente las cuentas bancarias JS -->
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="add-register-account" style="border-radius:0.4rem; font-weight:600; color:#b9a038; border:1.3px solid #b9a038;">
+                        + Agregar Cuenta Bancaria
+                    </button>
+                    <!-- Plantilla oculta para JS (repítelo dinámicamente con JS) -->
+                    <template id="bank-account-template">
+                        <div class="card mb-2" style="background:#f7f7fa; border-radius:0.65rem; border:1px solid #ececec; padding:0.9rem;">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-2">
+                                    <label class="form-label" style="color:#b9a038;">Ubicación</label>
+                                    <select class="form-select account-location" name="account_location[]" style="border-radius:0.5rem;">
+                                        <option value="">Seleccionar</option>
+                                        <option value="Lima">Lima</option>
+                                        <option value="Provincia">Provincia</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label" style="color:#b9a038;">Banco</label>
+                                    <select class="form-select account-bank" name="account_bank[]" style="border-radius:0.5rem;">
+                                        <option value="">Seleccionar</option>
+                                        <option value="BCP">BCP</option>
+                                        <option value="Interbank">Interbank</option>
+                                        <option value="BBVA">BBVA</option>
+                                        <option value="Scotiabank">Scotiabank</option>
+                                        <option value="Pichincha">Pichincha</option>
+                                        <option value="Bambi">Bambi</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label" style="color:#b9a038;">Tipo</label>
+                                    <select class="form-select account-type" name="account_type[]" style="border-radius:0.5rem;">
+                                        <option value="">Seleccionar</option>
+                                        <option value="Ahorros">Ahorros</option>
+                                        <option value="Corriente">Corriente</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label" style="color:#b9a038;">Moneda</label>
+                                    <select class="form-select account-currency" name="account_currency[]" style="border-radius:0.5rem;">
+                                        <option value="">Seleccionar</option>
+                                        <option value="Soles">Soles</option>
+                                        <option value="Dólares">Dólares</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" style="color:#b9a038;">Cuenta</label>
+                                    <input type="text" class="form-control account-number" name="account_number[]" style="border-radius:0.5rem;">
+                                </div>
+                                <div class="col-md-1 text-end">
+                                    <button type="button" class="btn btn-sm btn-danger remove-register-account" style="border-radius:0.4rem;">Eliminar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <div class="modal-footer" style="background:#f3f3f3; border-top:1px solid #ececec;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:0.5rem;">Cerrar</button>
+                    <button type="submit" class="btn" style="background:#b9a038; color:#fff; font-weight:600; border-radius:0.5rem;">
+                        Registrar Cliente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Resto del archivo sin cambios... -->
+<!-- Modal para ver/editar cliente con estilo visual QoriCash (modificado: reemplazo control y spacing) -->
+<div class="modal fade" id="clientModal" tabindex="-1" aria-labelledby="clientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border-radius:1.1rem; box-shadow:0 1px 8px rgba(0,0,0,0.10); border:2px solid #ececec;">
+            <form id="editClientForm" enctype="multipart/form-data" style="background:#fff; border-radius:1.1rem;">
+                <input type="hidden" name="csrf_token" id="edit_csrf_token_modal" value="{{ csrf_token() }}">
+                <div class="modal-header" style="background:#f3f3f3; border-bottom:1px solid #ececec;">
+                    <h5 class="modal-title" id="clientModalLabel" style="color:#b9a038; font-weight:600;">
+                        <i class="bi bi-person-lines-fill"></i> Ver/Editar Cliente
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body" id="editClientModalBody" style="padding-bottom:0;">
+                    <!-- JS generará los campos aquí -->
+                </div>
+                <div class="modal-footer" style="background:#f3f3f3; border-top:1px solid #ececec;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:0.5rem;">Cerrar</button>
+                    <button type="submit" class="btn" id="btnSaveEditClient" style="background:#b9a038; color:#fff; font-weight:600; border-radius:0.5rem;">
+                        Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Modal: Informacion de QoriCash (PEGAR DESPUÉS del modal #clientModal) -->
+<div class="modal fade" id="infoQoriCashModal" tabindex="-1" aria-labelledby="infoQoriCashModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" style="border-radius:1.1rem; box-shadow:0 1px 8px rgba(0,0,0,0.10); border:2px solid #ececec;">
+      <form id="qoricashInfoForm" enctype="multipart/form-data" style="background:#fff; border-radius:1.1rem;">
+        <input type="hidden" name="csrf_token" id="csrf_token_qori" value="{{ csrf_token() }}">
+        <div class="modal-header" style="background:#f3f3f3; border-bottom:1px solid #ececec;">
+          <h5 class="modal-title" id="infoQoriCashModalLabel" style="color:#b9a038; font-weight:600;">
+            <i class="bi bi-info-circle"></i> Informacion de QoriCash
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <p style="color:#444; margin-bottom:0.8rem;">Checklist de documentos</p>
+
+          <div class="list-group">
+            <!-- Cada fila: label, vista archivo y controles para Master -->
+            <div class="list-group-item d-flex align-items-center justify-content-between">
+              <div>
+                <strong>Ficha Ruc</strong><br><small class="text-muted">Documento de RUC</small>
+              </div>
+              <div class="text-end">
+                <span id="info-file-ficha_ruc" class="me-3"><em>No adjunto</em></span>
+                {% if user.role == 'Master' %}
+                <input type="file" id="info-file-input-ficha_ruc" data-key="ficha_ruc" accept=".jpg,.jpeg,.png,.pdf" style="display:inline-block;">
+                <button type="button" class="btn btn-sm btn-danger ms-2 info-file-delete" data-key="ficha_ruc">Eliminar</button>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="list-group-item d-flex align-items-center justify-content-between">
+              <div>
+                <strong>Acuerdo Marco Persona Natural</strong>
+              </div>
+              <div class="text-end">
+                <span id="info-file-acuerdo_persona_natural" class="me-3"><em>No adjunto</em></span>
+                {% if user.role == 'Master' %}
+                <input type="file" id="info-file-input-acuerdo_persona_natural" data-key="acuerdo_persona_natural" accept=".jpg,.jpeg,.png,.pdf" style="display:inline-block;">
+                <button type="button" class="btn btn-sm btn-danger ms-2 info-file-delete" data-key="acuerdo_persona_natural">Eliminar</button>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="list-group-item d-flex align-items-center justify-content-between">
+              <div>
+                <strong>Acuerdo Marco Persona Juridica</strong>
+              </div>
+              <div class="text-end">
+                <span id="info-file-acuerdo_persona_juridica" class="me-3"><em>No adjunto</em></span>
+                {% if user.role == 'Master' %}
+                <input type="file" id="info-file-input-acuerdo_persona_juridica" data-key="acuerdo_persona_juridica" accept=".jpg,.jpeg,.png,.pdf" style="display:inline-block;">
+                <button type="button" class="btn btn-sm btn-danger ms-2 info-file-delete" data-key="acuerdo_persona_juridica">Eliminar</button>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="list-group-item d-flex align-items-center justify-content-between">
+              <div>
+                <strong>Carta de Presentación</strong>
+              </div>
+              <div class="text-end">
+                <span id="info-file-carta_presentacion" class="me-3"><em>No adjunto</em></span>
+                {% if user.role == 'Master' %}
+                <input type="file" id="info-file-input-carta_presentacion" data-key="carta_presentacion" accept=".jpg,.jpeg,.png,.pdf" style="display:inline-block;">
+                <button type="button" class="btn btn-sm btn-danger ms-2 info-file-delete" data-key="carta_presentacion">Eliminar</button>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="list-group-item d-flex align-items-center justify-content-between">
+              <div>
+                <strong>Resolucion SBS</strong>
+              </div>
+              <div class="text-end">
+                <span id="info-file-resolucion_sbs" class="me-3"><em>No adjunto</em></span>
+                {% if user.role == 'Master' %}
+                <input type="file" id="info-file-input-resolucion_sbs" data-key="resolucion_sbs" accept=".jpg,.jpeg,.png,.pdf" style="display:inline-block;">
+                <button type="button" class="btn btn-sm btn-danger ms-2 info-file-delete" data-key="resolucion_sbs">Eliminar</button>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="list-group-item d-flex align-items-center justify-content-between">
+              <div>
+                <strong>Ficha abonos a terceros</strong>
+              </div>
+              <div class="text-end">
+                <span id="info-file-ficha_abonos_terceros" class="me-3"><em>No adjunto</em></span>
+                {% if user.role == 'Master' %}
+                <input type="file" id="info-file-input-ficha_abonos_terceros" data-key="ficha_abonos_terceros" accept=".jpg,.jpeg,.png,.pdf" style="display:inline-block;">
+                <button type="button" class="btn btn-sm btn-danger ms-2 info-file-delete" data-key="ficha_abonos_terceros">Eliminar</button>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="list-group-item d-flex align-items-center justify-content-between">
+              <div>
+                <strong>Cuentas bancarias</strong>
+              </div>
+              <div class="text-end">
+                <span id="info-file-cuentas_bancarias" class="me-3"><em>No adjunto</em></span>
+                {% if user.role == 'Master' %}
+                <input type="file" id="info-file-input-cuentas_bancarias" data-key="cuentas_bancarias" accept=".jpg,.jpeg,.png,.pdf" style="display:inline-block;">
+                <button type="button" class="btn btn-sm btn-danger ms-2 info-file-delete" data-key="cuentas_bancarias">Eliminar</button>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="list-group-item d-flex align-items-center justify-content-between">
+              <div>
+                <strong>Anexos</strong>
+              </div>
+              <div class="text-end">
+                <span id="info-file-anexos" class="me-3"><em>No adjunto</em></span>
+                {% if user.role == 'Master' %}
+                <input type="file" id="info-file-input-anexos" data-key="anexos" accept=".jpg,.jpeg,.png,.pdf" style="display:inline-block;">
+                <button type="button" class="btn btn-sm btn-danger ms-2 info-file-delete" data-key="anexos">Eliminar</button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer" style="background:#f3f3f3; border-top:1px solid #ececec;">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:0.5rem;">Cerrar</button>
+          {% if user.role == 'Master' %}
+          <span class="text-muted me-2">Al subir un archivo, reemplazará al adjunto previo (si existe).</span>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Visual QoriCash para Ver/Editar Cliente */
+#clientModal .modal-content {
+    border-radius: 1.1rem;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.12);
+    border: 2px solid #ececec;
+    background: #fff;
+}
+#clientModal .modal-header, #clientModal .modal-footer {
+    background: #f3f3f3;
+    border-color: #ececec;
+    border-radius: 1.1rem 1.1rem 0 0;
+}
+#clientModal .modal-title {
+    color: #b9a038;
+    font-weight: 600;
+    font-size: 1.2rem;
+    letter-spacing: .5px;
+}
+#clientModal .form-label, #clientModal label, #clientModal h6 {
+    color: #b9a038;
+    font-weight: 600;
+    font-size: 1.01rem;
+    margin-bottom: 0.2rem;
+}
+#clientModal input.form-control, #clientModal select.form-select, #clientModal textarea.form-control {
+    border-radius: 0.5rem;
+    background: #fafbfc;
+    color: #181d22;
+    border: 1px solid #ececec;
+}
+#clientModal input[readonly], #clientModal select[readonly], #clientModal textarea[readonly] {
+    background: #f3f3f3;
+    color: #888;
+}
+#clientModal .card.register-bank-account {
+    background:#f7f7fa;
+    border-radius:0.65rem;
+    border:1px solid #ececec;
+    padding:0.8rem 0.6rem 0.6rem 0.6rem;
+    margin-bottom: 0.7rem;
+}
+#clientModal .remove-register-account {
+    border-radius:0.4rem;
+}
+#clientModal .btn-primary, #clientModal .btn-success {
+    background: #b9a038 !important;
+    border: none !important;
+    font-weight: 600;
+    color: #fff !important;
+    border-radius: 0.5rem !important;
+}
+#clientModal .btn-primary:hover, #clientModal .btn-success:hover {
+    background: #a58c2e !important;
+}
+#clientModal .btn-secondary {
+    border-radius: 0.5rem;
+}
+#clientModal .badge-estado {
+    background: #ffe8b3;
+    color: #8d6700;
+    font-size: 0.97em;
+    padding: 0.3em 0.85em;
+    border-radius: 1em;
+    font-weight: 600;
+    border: 1px solid #f3e2ae;
+    margin-left: 0.3em;
+}
+#clientModal .badge-estado[data-status="Activo"] {
+    background: #d9f5d0;
+    color: #21521a;
+    border: 1px solid #c5e6bb;
+}
+#clientModal .badge-estado[data-status="Rechazado"] {
+    background: #ffd6d6;
+    color: #a72c2c;
+    border: 1px solid #ffd6d6;
+}
+#clientModal .adjunto-img {
+    max-width: 110px;
+    max-height: 85px;
+    border-radius: 0.5rem;
+    border: 1px solid #ececec;
+    display: block;
+    margin-bottom: 4px;
+}
+#clientModal .adjunto-link {
+    color: #b9a038;
+    text-decoration: underline;
+    font-size: 0.97rem;
+}
+@media (max-width: 900px) {
+    #clientModal .modal-content { padding: 0.7rem 0.2rem;}
+}
+</style>
+{% endblock %}
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+// ========== UTILIDADES ==========
+
+function docNumberPlaceholder(tipo) {
+    if (tipo === 'DNI')      return '8 dígitos numéricos';
+    if (tipo === 'Carnet de Extranjería') return '9 dígitos numéricos';
+    if (tipo === 'RUC')      return '11 dígitos numéricos';
+    return '';
+}
+function docNumberMax(tipo) {
+    if (tipo === 'DNI')      return 8;
+    if (tipo === 'Carnet de Extranjería') return 9;
+    if (tipo === 'RUC')      return 11;
+    return 15;
+}
+
+function renderBankAccounts(accounts, prefix = '', editable = true) {
+    let html = '';
+    accounts.forEach((acc, i) => {
+        html += `
+            <div class="card mb-2 register-bank-account">
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <label class="form-label mb-0">Ubicación</label>
+                            <select class="form-select account-location" ${editable ? '' : 'disabled'}>
+                                <option value="">Seleccionar</option>
+                                <option value="Lima" ${acc.location === 'Lima' ? 'selected' : ''}>Lima</option>
+                                <option value="Provincia" ${acc.location === 'Provincia' ? 'selected' : ''}>Provincia</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-0">Banco</label>
+                            <select class="form-select account-bank" ${editable ? '' : 'disabled'}>
+                                <option value="">Seleccionar</option>
+                                <option value="BCP" ${acc.bank === 'BCP' ? 'selected' : ''}>BCP</option>
+                                <option value="Interbank" ${acc.bank === 'Interbank' ? 'selected' : ''}>Interbank</option>
+                                <option value="BBVA" ${acc.bank === 'BBVA' ? 'selected' : ''}>BBVA</option>
+                                <option value="Scotiabank" ${acc.bank === 'Scotiabank' ? 'selected' : ''}>Scotiabank</option>
+                                <option value="Pichincha" ${acc.bank === 'Pichincha' ? 'selected' : ''}>Pichincha</option>
+                                <option value="Bambi" ${acc.bank === 'Bambi' ? 'selected' : ''}>Bambi</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label mb-0">Tipo</label>
+                            <select class="form-select account-type" ${editable ? '' : 'disabled'}>
+                                <option value="">Seleccionar</option>
+                                <option value="Ahorros" ${acc.account_type === 'Ahorros' ? 'selected' : ''}>Ahorros</option>
+                                <option value="Corriente" ${acc.account_type === 'Corriente' ? 'selected' : ''}>Corriente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label mb-0">Moneda</label>
+                            <select class="form-select account-currency" ${editable ? '' : 'disabled'}>
+                                <option value="">Seleccionar</option>
+                                <option value="Soles" ${acc.currency === 'Soles' ? 'selected' : ''}>Soles</option>
+                                <option value="Dólares" ${acc.currency === 'Dólares' ? 'selected' : ''}>Dólares</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label mb-0">Cuenta</label>
+                            <input type="text" class="form-control account-number" value="${acc.account_number || ''}" ${editable ? '' : 'readonly'}>
+                        </div>
+                        <div class="col-md-12 mt-2 text-end">
+                            ${editable ? '<button type="button" class="btn btn-sm btn-danger remove-register-account">Eliminar</button>' : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    $(prefix + 'bank-accounts').html(html);
+    if (editable) {
+        $('.remove-register-account').off('click').on('click', function() {
+            $(this).closest('.register-bank-account').remove();
+        });
+    }
+}
+
+$(document).ready(function() {
+    var userRole = "{{ user.role }}";
+
+    // Helper to update document labels both in register modal and edit modal
+    function updateDocumentLabels(tipo) {
+        const frontReg = $('#label_doc_front');
+        const backReg = $('#label_doc_back');
+        const frontModal = $('#modal_label_doc_front');
+        const backModal = $('#modal_label_doc_back');
+
+        if (tipo === 'RUC') {
+            if (frontReg.length) frontReg.text('Documento Frontal Rep. Legal');
+            if (backReg.length) backReg.text('Documento Reverso Rep. Legal');
+            if (frontModal.length) frontModal.text('Documento Frontal Rep. Legal');
+            if (backModal.length) backModal.text('Documento Reverso Rep. Legal');
+        } else {
+            if (frontReg.length) frontReg.text('Documento Frontal');
+            if (backReg.length) backReg.text('Documento Reverso');
+            if (frontModal.length) frontModal.text('Documento Frontal');
+            if (backModal.length) backModal.text('Documento Reverso');
+        }
+    }
+
+    // Inicializaciones y handlers (descargas, registro) - mantengo tu lógica original
+    if (userRole === 'Master') {
+        const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        $('#fecha_inicio').val(thirtyDaysAgo.toISOString().split('T')[0]);
+        $('#fecha_fin').val(today.toISOString().split('T')[0]);
+        $('#btnDescargarClientes').click(function() {
+            $.get('/get_csrf_token', function(data){
+                $('#download_csrf_token').val(data.csrf_token);
+            });
+            $('#downloadModal').modal('show');
+        });
+        $('#confirmDownload').click(function() {
+            const fechaInicio = $('#fecha_inicio').val();
+            const fechaFin = $('#fecha_fin').val();
+            if (!fechaInicio || !fechaFin) { alert('Por favor seleccione ambas fechas'); return; }
+            if (fechaInicio > fechaFin) { alert('La fecha de inicio no puede ser mayor a la fecha fin'); return; }
+            // Navegar al endpoint que genera el Excel (GET con parámetros)
+            window.location.href = `/download_clients_excel?fecha_inicio=${encodeURIComponent(fechaInicio)}&fecha_fin=${encodeURIComponent(fechaFin)}`;
+            $('#downloadModal').modal('hide');
+        });
+    }
+
+    function setDocNumberConstraints(tipo, $doc) {
+        $doc.removeAttr('maxlength');
+        $doc.attr('maxlength', docNumberMax(tipo));
+        $doc.attr('minlength', docNumberMax(tipo));
+        $doc.attr('pattern', '\\d{' + docNumberMax(tipo) + '}');
+        $doc.attr('placeholder', docNumberPlaceholder(tipo));
+    }
+
+    var table = $('#clientsTable').DataTable({
+        order: [[6, "desc"]],
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
+        }
+    });
+
+    // Mostrar/ocultar campos de nombre según tipo documento
+    function updateNameFieldsVisibility(tipo) {
+        if (tipo === 'RUC') {
+            $('#name-field-ruc').show();
+            $('#name-fields-composed').hide();
+            // RUC requires ficha RU input
+            $('.ruc-only').show();
+            $('#doc_ru').attr('required', true);
+        } else if (tipo === 'DNI' || tipo === 'Carnet de Extranjería') {
+            $('#name-field-ruc').hide();
+            $('#name-fields-composed').show();
+            $('.ruc-only').hide();
+            $('#doc_ru').removeAttr('required');
+        } else {
+            // default: hide composed, show razon social as a fallback
+            $('#name-field-ruc').show();
+            $('#name-fields-composed').hide();
+            $('.ruc-only').hide();
+            $('#doc_ru').removeAttr('required');
+        }
+    }
+
+    $('#doc_type').on('change', function() {
+        var tipo = $(this).val();
+        setDocNumberConstraints(tipo, $('#doc_number'));
+        updateNameFieldsVisibility(tipo);
+        updateDocumentLabels(tipo);
+
+        if (tipo === 'RUC') {
+            $('#client_type').val('Jurídica');
+        } else {
+            $('#client_type').val('Natural');
+        }
+    });
+
+    $('#doc_number').on('input', function() {
+        let tipo = $('#doc_type').val();
+        let maxLen = docNumberMax(tipo);
+        this.value = this.value.replace(/\D/g, '').slice(0, maxLen);
+    });
+
+    // Masks
+    $(document).on('input', '#phone, #modal_phone', function() {
+        let val = $(this).val().replace(/[^0-9]/g, '');
+        $(this).val(val);
+    });
+    $(document).on('input', '#name, #modal_name, #apellido_paterno, #apellido_materno, #nombres', function() {
+        let val = $(this).val();
+        $(this).val(val.toUpperCase());
+    });
+
+    // Initialize visibility on modal show
+    $('#registerClientModal').on('show.bs.modal', function() {
+        const tipo = $('#doc_type').val() || '';
+        updateNameFieldsVisibility(tipo);
+        updateDocumentLabels(tipo);
+        // reset fields to empty when opening new modal
+        $('#registerClientForm')[0].reset();
+        // set default client_type based on doc_type currently selected (if any)
+        if ($('#doc_type').val() === 'RUC') $('#client_type').val('Jurídica');
+        else $('#client_type').val('Natural');
+    });
+
+    // Register form submit
+    $('#registerClientForm').off('submit').on('submit', function(e) {
+        e.preventDefault();
+        let tipo = $('#doc_type').val();
+        let numero = $('#doc_number').val();
+        // Validation for document length
+        let valido = true;
+        let mensaje = '';
+        if (tipo === 'DNI' && numero.length !== 8) {
+            valido = false;
+            mensaje = 'Coloca los 8 dígitos del DNI';
+        }
+        if (tipo === 'Carnet de Extranjería' && numero.length !== 9) {
+            valido = false;
+            mensaje = 'Coloca los 9 dígitos del Carnet de Ext.';
+        }
+        if (tipo === 'RUC' && numero.length !== 11) {
+            valido = false;
+            mensaje = 'Coloca los 11 dígitos del RUC';
+        }
+        if (!valido) {
+            alert(mensaje);
+            $('#doc_number').focus();
+            return false;
+        }
+
+        // Build formData and ensure 'name' is a single field regardless of which inputs were used.
+        let formData = new FormData(this);
+
+        // If document is DNI or Carnet, combine apellido paterno + apellido materno + nombres into single name
+        if (tipo === 'DNI' || tipo === 'Carnet de Extranjería') {
+            const ap = ($('#apellido_paterno').val() || '').trim();
+            const am = ($('#apellido_materno').val() || '').trim();
+            const nm = ($('#nombres').val() || '').trim();
+            if (!ap || !am || !nm) {
+                alert('Por favor complete Apellido Paterno, Apellido Materno y Nombres.');
+                return false;
+            }
+            const combined = `${ap} ${am} ${nm}`.replace(/\s+/g, ' ').trim();
+            // Override/set the name field in FormData
+            formData.set('name', combined);
+            // Also set client_type if empty
+            if (!formData.get('client_type')) formData.set('client_type', 'Natural');
+        } else {
+            // RUC case -> ensure razon social provided
+            const razon = ($('#name').val() || '').trim();
+            if (!razon) {
+                alert('Por favor ingrese la Razón Social para RUC.');
+                return false;
+            }
+            formData.set('name', razon);
+            if (!formData.get('client_type')) formData.set('client_type', 'Jurídica');
+        }
+
+        // Append bank accounts (already handled by template inputs)
+        $('.register-bank-account').each(function() {
+            formData.append('account_location[]', $(this).find('.account-location').val());
+            formData.append('account_bank[]', $(this).find('.account-bank').val());
+            formData.append('account_type[]', $(this).find('.account-type').val());
+            formData.append('account_currency[]', $(this).find('.account-currency').val());
+            formData.append('account_number[]', $(this).find('.account-number').val());
+        });
+
+        $.ajax({
+            url: '/register_client',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    alert('Cliente registrado exitosamente');
+                    $('#registerClientModal').modal('hide');
+                    location.reload();
+                } else {
+                    alert('Error al registrar el cliente: ' + (response.error || ''));
+                }
+            },
+            error: function(xhr) {
+                alert('Error inesperado al registrar el cliente: ' + (xhr.responseText || xhr.statusText));
+            }
+        });
+        return false;
+    });
+
+    setDocNumberConstraints($('#doc_type').val(), $('#doc_number'));
+
+    renderBankAccounts([], '#register-');
+    $('#add-register-account').click(function() {
+        let accounts = [];
+        $('#register-bank-accounts .register-bank-account').each(function() {
+            accounts.push({
+                location: $(this).find('.account-location').val(),
+                bank: $(this).find('.account-bank').val(),
+                account_type: $(this).find('.account-type').val(),
+                currency: $(this).find('.account-currency').val(),
+                account_number: $(this).find('.account-number').val()
+            });
+        });
+        accounts.push({location: '', bank: '', account_type: '', currency: '', account_number: ''});
+        renderBankAccounts(accounts, '#register-');
+    });
+
+    // MODAL VER/EDITAR CLIENTE
+    $(document).on('click', '.view-client', function() {
+        var clientId = $(this).data('client-id');
+        window.clientId = clientId;
+        $.get('/get_csrf_token', function(data){
+            $('#edit_csrf_token_modal').val(data.csrf_token);
+        });
+        $.getJSON('/api/client/' + clientId, function(response) {
+            var c = response.client;
+            var a = response.accounts;
+            var readOnly = (userRole === "Trader");
+            var html = `
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Tipo Documento</label>
+                        <select class="form-select" id="modal_doc_type" name="doc_type" ${readOnly ? 'disabled' : ''} required>
+                            <option value="">Seleccionar</option>
+                            <option value="DNI" ${c.doc_type === 'DNI' ? 'selected' : ''}>DNI</option>
+                            <option value="Carnet de Extranjería" ${c.doc_type === 'Carnet de Extranjería' ? 'selected' : ''}>Carnet de Extranjería</option>
+                            <option value="RUC" ${c.doc_type === 'RUC' ? 'selected' : ''}>RUC</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">N° Documento</label>
+                        <input type="text" class="form-control" id="modal_doc_number" name="doc_number" required autocomplete="off" value="${c.doc_number}" ${readOnly ? 'readonly' : ''}>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Tipo de Cliente</label>
+                        <input type="text" class="form-control" id="modal_client_type" name="client_type" readonly value="${c.client_type}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Nombre / Razón Social</label>
+                        <input type="text" class="form-control" id="modal_name" name="name" required value="${c.name}" ${readOnly ? 'readonly' : ''}>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Teléfono</label>
+                        <input type="text" class="form-control" id="modal_phone" name="phone" value="${c.phone || ''}" ${readOnly ? 'readonly' : ''}>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="modal_email" name="email" value="${c.email || ''}" ${readOnly ? 'readonly' : ''}>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Dirección</label>
+                        <input type="text" class="form-control" id="modal_address" name="address" value="${c.address || ''}" ${readOnly ? 'readonly' : ''}>
+                    </div>
+                    ${(userRole === "Master" || userRole === "Operador") ? `
+                    <div class="col-md-6">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" id="modal_status" name="status">
+                            <option value="Pendiente" ${c.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                            <option value="Activo" ${c.status === 'Activo' ? 'selected' : ''}>Activo</option>
+                            <option value="Rechazado" ${c.status === 'Rechazado' ? 'selected' : ''}>Rechazado</option>
+                        </select>
+                    </div>
+                    ` : `
+                    <div class="col-md-6">
+                        <label class="form-label">Estado</label>
+                        <input type="text" class="form-control" value="${c.status}" readonly>
+                    </div>
+                    `}
+                </div>
+                <hr>
+                <div class="mt-3">
+                  <h6>Documentos adjuntos</h6>
+                  <div class="row">
+                    <div class="col-md-4">
+                      <label class="form-label" id="modal_label_doc_front">Documento Frontal</label><br>
+                      <span id="doc_front_view"></span>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label" id="modal_label_doc_back">Documento Reverso</label><br>
+                      <span id="doc_back_view"></span>
+                    </div>
+                    <div class="col-md-4 ruc-only" style="display:none;">
+                      <label class="form-label">Ficha RUC:</label><br>
+                      <span id="doc_ru_view"></span>
+                    </div>
+                  </div>
+                </div>
+                <h6 class="accounts-section">Cuentas Bancarias</h6>
+                <div id="modal-bank-accounts"></div>
+                <button type="button" class="btn btn-sm btn-primary mt-2" id="modal-add-account">+ Agregar Cuenta Bancaria</button>
+            `;
+            $('#editClientModalBody').html(html);
+            renderBankAccounts(a, '#modal-', true);
+
+            // Ensure modal labels match doc_type
+            updateDocumentLabels(c.doc_type || '');
+
+            // --- RENDER ADJUNTOS ---
+            function renderAdjuntoDoc(filename) {
+                if (!filename) return '<em>No adjunto</em>';
+                let ext = filename.split('.').pop().toLowerCase();
+                let url = '/uploads/clientes/' + filename;
+                if (["jpg", "jpeg", "png"].includes(ext)) {
+                    return `<a href="${url}" target="_blank"><img src="${url}" style="max-width:100px;max-height:80px;" alt="Ver imagen"></a>`;
+                } else if (ext === "pdf") {
+                    return `<a href="${url}" target="_blank"><i class="bi bi-file-pdf"></i> Ver PDF</a>`;
+                } else {
+                    return `<a href="${url}" target="_blank">Descargar</a>`;
+                }
+            }
+            $('#doc_front_view').html(renderAdjuntoDoc(c.doc_front));
+            $('#doc_back_view').html(renderAdjuntoDoc(c.doc_back));
+            if (c.doc_ru) {
+                $('#doc_ru_view').html(renderAdjuntoDoc(c.doc_ru));
+                $('.ruc-only').show();
+            } else {
+                $('#doc_ru_view').html('<em>No adjunto</em>');
+                $('.ruc-only').hide();
+            }
+            // --- FIN RENDER ADJUNTOS ---
+
+            function updateModalDocNumberConstraints() {
+                var tipo = $('#modal_doc_type').val();
+                var $doc = $('#modal_doc_number');
+                $doc.prop('maxlength', docNumberMax(tipo));
+                $doc.attr('minlength', docNumberMax(tipo));
+                $doc.attr('pattern', '\\d{' + docNumberMax(tipo) + '}');
+                $doc.attr('placeholder', docNumberPlaceholder(tipo));
+                $doc.val($doc.val().slice(0, docNumberMax(tipo)));
+            }
+            $('#modal_doc_type').on('change', function() {
+                var tipo = $(this).val();
+                updateModalDocNumberConstraints();
+                updateDocumentLabels(tipo);
+                if (tipo === 'RUC') {
+                    $('#modal_client_type').val('Jurídica');
+                    $('.ruc-only').show();
+                } else {
+                    $('#modal_client_type').val('Natural');
+                    $('.ruc-only').hide();
+                }
+                $('#modal_doc_number').val('');
+            });
+            $('#modal_doc_number').on('input', function() {
+                let tipo = $('#modal_doc_type').val();
+                let maxLen = docNumberMax(tipo);
+                this.value = this.value.replace(/\D/g, '').slice(0, maxLen);
+            });
+            updateModalDocNumberConstraints();
+            $('#modal-add-account').off('click').on('click', function() {
+                let accounts = [];
+                $('#modal-bank-accounts .register-bank-account').each(function() {
+                    accounts.push({
+                        location: $(this).find('.account-location').val(),
+                        bank: $(this).find('.account-bank').val(),
+                        account_type: $(this).find('.account-type').val(),
+                        currency: $(this).find('.account-currency').val(),
+                        account_number: $(this).find('.account-number').val()
+                    });
+                });
+                accounts.push({location: '', bank: '', account_type: '', currency: '', account_number: ''});
+                renderBankAccounts(accounts, '#modal-', true);
+            });
+            if (userRole === "Trader") {
+                $('#editClientForm input:not(.account-number), #editClientForm select:not(.account-location):not(.account-bank):not(.account-type):not(.account-currency)').prop('readonly', true).prop('disabled', true);
+            }
+
+            // Añadir control "Reemplazar" (sin botón "Eliminar") sólo para Operador/Master
+            function addFileReplaceControl(field) {
+                var viewSelector = '#doc_' + field + '_view';
+                var inputId = '#modal_doc_' + field + '_file';
+                if ($(inputId).length) return;
+                var controls = `
+                    <div class="mt-1">
+                        <label class="btn btn-sm btn-outline-secondary mb-0" for="${inputId.substring(1)}">Reemplazar</label>
+                        <input type="file" id="${inputId.substring(1)}" name="doc_${field}" accept=".jpg,.jpeg,.png,.pdf" style="display:none;">
+                        <span id="${inputId.substring(1)}_name" class="ms-2 small text-muted"></span>
+                    </div>
+                `;
+                $(viewSelector).after(controls);
+                $(inputId).on('change', function() {
+                    if (this.files && this.files.length) {
+                        $(viewSelector).html(`<span class="text-success">Archivo listo: ${this.files[0].name}</span>`);
+                        $(`${inputId}_name`).text(this.files[0].name);
+                    } else {
+                        $(`${inputId}_name`).text('');
+                    }
+                });
+            }
+
+            if (userRole === "Master" || userRole === "Operador") {
+                addFileReplaceControl('front');
+                addFileReplaceControl('back');
+                addFileReplaceControl('ru');
+            }
+        });
+        $('#clientModal').modal('show');
+
+        // SUBMIT FORMULARIO (FormData) - ahora solo envía archivos si se seleccionaron (sin banderas de eliminación)
+        $('#editClientForm').off('submit').on('submit', function(e) {
+            e.preventDefault();
+            var clientId = window.clientId;
+            if (!clientId) { alert("Error interno: falta ID de cliente."); return false; }
+
+            var formData = new FormData();
+            formData.append("csrf_token", $('#edit_csrf_token_modal').val());
+            formData.append("doc_type", $('#modal_doc_type').val());
+            formData.append("client_type", $('#modal_client_type').val());
+            formData.append("doc_number", $('#modal_doc_number').val());
+            formData.append("name", $('#modal_name').val());
+            formData.append("phone", $('#modal_phone').val());
+            formData.append("email", $('#modal_email').val());
+            formData.append("address", $('#modal_address').val());
+            formData.append("status", $('#modal_status').val() || "");
+
+            // Cuentas bancarias
+            $('#modal-bank-accounts .register-bank-account').each(function(i) {
+                formData.append(`account_location[]`, $(this).find('.account-location').val());
+                formData.append(`account_bank[]`, $(this).find('.account-bank').val());
+                formData.append(`account_type[]`, $(this).find('.account-type').val());
+                formData.append(`account_currency[]`, $(this).find('.account-currency').val());
+                formData.append(`account_number[]`, $(this).find('.account-number').val());
+            });
+
+            // Adjuntos: solo enviar archivos si el usuario seleccionó uno para reemplazar
+            var frontInput = $('#modal_doc_front_file')[0];
+            if (frontInput && frontInput.files && frontInput.files.length > 0) {
+                formData.append('doc_front', frontInput.files[0]);
+            }
+            var backInput = $('#modal_doc_back_file')[0];
+            if (backInput && backInput.files && backInput.files.length > 0) {
+                formData.append('doc_back', backInput.files[0]);
+            }
+            var ruInput = $('#modal_doc_ru_file')[0];
+            if (ruInput && ruInput.files && ruInput.files.length > 0) {
+                formData.append('doc_ru', ruInput.files[0]);
+            }
+
+            $.ajax({
+                url: '/api/client/' + clientId + '/update',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(resp) {
+                    if (resp.success) {
+                        alert('Cliente actualizado exitosamente');
+                        $('#clientModal').modal('hide');
+                        location.reload();
+                    } else {
+                        alert('Error al actualizar: ' + (resp.error || ''));
+                    }
+                },
+                error: function(xhr) {
+                    alert('Error al actualizar: ' + (xhr.responseText || xhr.statusText || ''));
+                }
+            });
+            return false;
+        });
+    });
+
+    // ELIMINAR CLIENTE - SOLO MASTER
+    $(document).on('click', '.btn-eliminar-cliente', function(){
+        var clientId = $(this).data('id');
+        if(confirm('¿Está seguro de eliminar este cliente y todos sus datos asociados?')) {
+            $.post('/eliminar_cliente/' + clientId, {}, function(resp){
+                if(resp.success){
+                    $('#cliente-row-' + clientId).fadeOut(300, function(){ $(this).remove(); });
+                }else{
+                    alert("Error al eliminar el cliente.");
+                }
+            }).fail(function(xhr){
+                alert('Error al eliminar: ' + (xhr.responseText || ''));
+            });
+        }
+    });
+
+    // POLLING + SOCKET (igual que antes)
+    var estadosClientes = {};
+    var clientIdsInTable = new Set();
+    var lastClientTimestamp = '';
+    var headerNames = [];
+    $('#clientsTable thead th').each(function() {
+        headerNames.push($(this).text().trim());
+    });
+    $('#clientsTable tbody tr').each(function() {
+        var cid = $(this).find('td').eq(0).text().trim();
+        clientIdsInTable.add(cid);
+        var estadoIdx = headerNames.indexOf('Estado');
+        var estado = '';
+        if (estadoIdx !== -1) {
+            estado = $(this).find('td').eq(estadoIdx).find('.badge-estado').text().trim();
+        } else {
+            estado = $(this).find('td').last().text().trim();
+        }
+        estadosClientes[cid] = estado;
+        var fechaCell = $(this).find('td').eq(6).text().trim();
+        if (fechaCell && (!lastClientTimestamp || fechaCell > lastClientTimestamp)) {
+            lastClientTimestamp = fechaCell;
+        }
+    });
+
+    function badgeEstado(estado) {
+        return `<span class="badge-estado" data-status="${estado}">${estado}</span>`;
+    }
+
+    function actualizarClienteEnTabla(cli) {
+        var $row = $('#cliente-row-' + cli.client_id);
+        if ($row.length) {
+            var estadoIdx = headerNames.indexOf('Estado');
+            var estadoActual = '';
+            if (estadoIdx !== -1) {
+                estadoActual = $row.find('td').eq(estadoIdx).find('.badge-estado').text().trim();
+            } else {
+                estadoActual = $row.find('td:contains("Pendiente"), td:contains("Activo"), td:contains("Rechazado")').first().text().trim();
+            }
+
+            if (estadoActual !== cli.status) {
+                if (estadoIdx !== -1) {
+                    $row.find('td').eq(estadoIdx).html(badgeEstado(cli.status));
+                } else {
+                    $row.find('.badge-estado').first().replaceWith(badgeEstado(cli.status));
+                }
+                if (window.clientId == cli.client_id && $('#clientModal').is(':visible')) {
+                    $('#clientModal').modal('hide');
+                    if (userRole === 'Trader') {
+                        alert(`El estado del cliente ${cli.name} ha cambiado a: ${cli.status}`);
+                    }
+                }
+            }
+        } else {
+            var fila = [];
+            fila.push(cli.client_id || '');
+            fila.push(cli.name || '');
+            fila.push(cli.doc_type || '');
+            fila.push(cli.doc_number || '');
+            fila.push(cli.client_type || '');
+            fila.push(cli.phone || '');
+            fila.push(cli.created_at || '');
+            if (headerNames.indexOf('Usuario') !== -1) {
+                fila.push(cli.username || '');
+            }
+            fila.push(badgeEstado(cli.status || ''));
+            fila.push(`<button type="button" class="btn btn-sm btn-info view-client" data-client-id="${cli.client_id}">Ver/Editar</button>`);
+            if (headerNames.indexOf('Eliminar') !== -1) {
+                fila.push(`<button type="button" class="btn btn-sm btn-danger btn-eliminar-cliente" data-id="${cli.client_id}">Eliminar</button>`);
+            }
+            var columnsCount = headerNames.length;
+            while (fila.length < columnsCount) {
+                fila.splice(-1, 0, '');
+            }
+            var rowNode = table.row.add(fila).draw(false).node();
+            $(rowNode).attr('id', 'cliente-row-' + cli.client_id);
+            clientIdsInTable.add(cli.client_id.toString());
+        }
+        estadosClientes[cli.client_id] = cli.status;
+        if (cli.created_at && (!lastClientTimestamp || cli.created_at > lastClientTimestamp)) {
+            lastClientTimestamp = cli.created_at;
+        }
+    }
+
+    function ejecutarPollingClientes() {
+        $.getJSON('/api/clients_poll' + (lastClientTimestamp ? '?last_timestamp=' + encodeURIComponent(lastClientTimestamp) : ''), function(data) {
+            if(data.clients && data.clients.length > 0) {
+                data.clients.forEach(function(cli){
+                    var estadoAnterior = estadosClientes[cli.client_id];
+                    var estadoNuevo = cli.status;
+                    if (estadoAnterior !== estadoNuevo) {
+                        actualizarClienteEnTabla(cli);
+                    } else if (!estadoAnterior) {
+                        actualizarClienteEnTabla(cli);
+                    }
+                });
+            }
+        }).fail(function(xhr, status, error) {
+            console.log('Error en polling de clientes:', error);
+        });
+    }
+
+    try {
+        const clientesSocket = io({transports: ['websocket', 'polling']});
+        clientesSocket.on('connect', function() { console.log("Socket de clientes conectado"); });
+        clientesSocket.on('cliente_actualizado', function(data) {
+            if (data && data.client_id) {
+                actualizarClienteEnTabla(data);
+                if (data.created_at && (!lastClientTimestamp || data.created_at > lastClientTimestamp)) {
+                    lastClientTimestamp = data.created_at;
+                }
+            }
+        });
+    } catch (e) {
+        console.warn("Socket clientes no disponible:", e);
+    }
+
+    setInterval(ejecutarPollingClientes, 3000);
+    setTimeout(ejecutarPollingClientes, 1000);
+
+});
+</script>
+{% endblock %}

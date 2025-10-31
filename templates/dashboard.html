@@ -1,0 +1,778 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Sistema de Trading de Dólares{% endblock %}
+
+{% block head %}
+<!-- Token CSRF -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+<style>
+body, .main-content {
+    background: #fff !important;
+    color: #222 !important;
+}
+.dashboard-container {
+    max-width: 1150px;
+    margin: 0 auto;
+    padding: 1.2rem 1.2rem 1.2rem 1.2rem;
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    box-sizing: border-box;
+}
+.dashboard-header {
+    font-size: 2.1rem;
+    font-weight: 700;
+    color: #181d22;
+    letter-spacing: 1px;
+    margin-bottom: 1.7rem;
+    text-align: left;
+    padding-left: .3rem;
+}
+.filter-trader-block {
+    margin-bottom: 1.1rem;
+    display: flex; align-items: center; gap: 1rem;
+    padding-left: .3rem;
+}
+.filter-trader-label {
+    color: #b9a038;
+    font-weight: 600;
+    font-size: 1.09rem;
+    margin-right: 0.4rem;
+}
+.filter-trader-select {
+    border-radius: 0.5rem;
+    border: 1.5px solid #b9a038;
+    padding: 0.35em 1.1em;
+    font-size: 1.1rem;
+    font-weight: 500;
+    background: #f7f7fa;
+    color: #181d22;
+    min-width: 160px;
+}
+/* Align grid items to the top so all cards line up */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.2rem;
+    margin-bottom: 1.4rem;
+    align-items: start;
+}
+/* Force each grid child to align to top (fixes vertical offset) */
+.dashboard-grid > * {
+    align-self: start;
+}
+/* Remove the extra top margin progress-card had so it sits level with stats-card */
+.dashboard-grid .progress-card {
+    margin-top: 0;
+}
+
+.dashboard-section-title {
+    font-size: 1.21rem;
+    color: #b9a038;
+    font-weight: 700;
+    margin-bottom: 0.8rem;
+    margin-top: 0.7rem;
+    letter-spacing: .5px;
+    text-align: left;
+    grid-column: 1 / -1;    
+}
+.month-selector-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.month-selector {
+    border-radius: 0.5rem;
+    border: 1.5px solid #b9a038;
+    padding: 0.35em 1.1em;
+    font-size: 1rem;
+    font-weight: 500;
+    background: #f7f7fa;
+    color: #181d22;
+    min-width: 140px;
+    cursor: pointer;
+}
+.month-selector-label {
+    color: #b9a038;
+    font-weight: 600;
+    font-size: 1rem;
+}
+.stats-card {
+    background: #f7f7fa;
+    color: #181d22;
+    border-radius: 1.07rem;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    border: 2px solid #ececec;
+    padding: 1.05rem 1.1rem 0.85rem 1.1rem;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: box-shadow 0.2s, border-color 0.2s;
+    height: 120px;
+}
+.stats-card .icon {
+    font-size: 1.5rem;
+    color: #b9a038;
+    margin-bottom: .15rem;
+    margin-right: .3rem;
+    display: block;
+    vertical-align: middle;
+}
+.stats-card .main-value {
+    font-size: 2.05rem;
+    font-weight: 700;
+    color: #181d22;
+    margin-bottom: 0.18rem;
+    text-align: center;
+    line-height: 1.05;
+}
+.stats-card .label {
+    font-size: 1.07rem;
+    font-weight: 500;
+    color: #4d4d4d;
+    margin-bottom: .01rem;
+    margin-top: .09rem;
+    text-align: center;
+}
+.stats-card .input-editable {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #181d22;
+    background: #fffbea;
+    border: 1.4px solid #b9a038;
+    border-radius: 0.5rem;
+    padding: 0.09em 0.5em;
+    width: 90%;
+    outline: none;
+    margin-bottom: 0.14rem;
+    margin-top: 0.05rem;
+    text-align: center;
+}
+.stats-card .btn-save {
+    font-size: 0.93rem;
+    font-weight: 600;
+    background: #b9a038;
+    color: #fff;
+    border: none;
+    border-radius: 0.4rem;
+    padding: 0.13em 0.85em;
+    margin-top: 0.13rem;
+    margin-bottom: 0.08rem;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.stats-card .btn-save:active,
+.stats-card .btn-save:focus {
+    background: #a58c2e;
+}
+.progress-card {
+    background: #fafbfc;
+    border-radius: 1.07rem;
+    border: 2px solid #ececec;
+    padding: 1rem 1.1rem;
+    min-width: 0;
+    margin-bottom: 1.1rem;
+    margin-top: .5rem;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center;
+    height: 120px;
+}
+.progress-label {
+    font-size: 1.03rem;
+    font-weight: 600;
+    color: #b9a038;
+    margin-bottom: 0.25rem;
+}
+.progress-bar-bg {
+    width: 100%; height: 18px;
+    background: #e9e9eb;
+    border-radius: 1em;
+    overflow: hidden;
+    margin-bottom: 0.22rem;
+    margin-top: 0.1rem;
+    box-sizing: border-box;
+}
+.progress-bar-fg {
+    height: 100%;
+    background: linear-gradient(90deg, #b9a038 0%, #f3e2ae 100%);
+    border-radius: 1em;
+    transition: width 0.4s;
+}
+#meta_progress_text {
+    font-size:1.04rem;
+    font-weight:600;
+    color:#181d22;
+    margin-top:0.12rem;
+}
+
+/* Estilos para modales corregidos - Z-INDEX ALTO Y CENTRADO PERFECTO */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999;
+}
+
+.modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    z-index: 10000;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+}
+
+.modal-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.btn-cancel {
+    padding: 0.5rem 1rem;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 0.4rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-save {
+    padding: 0.5rem 1rem;
+    background: #b9a038;
+    color: white;
+    border: none;
+    border-radius: 0.4rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-cancel:hover {
+    background: #5a6268;
+}
+
+.btn-save:hover {
+    background: #a58c2e;
+}
+
+/* Indicador visual de campos editables */
+.editable-card {
+    transition: all 0.2s ease;
+}
+
+.editable-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Estilo para modo no editable */
+.editable-card.no-editable .main-value {
+    cursor: default !important;
+}
+
+.editable-card.no-editable:hover {
+    transform: none;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+}
+
+/* ESTILO DESTACADO PARA LA TARJETA "META" */
+.meta-card {
+    background: linear-gradient(135deg, #fff4d9 0%, #fff9ee 100%);
+    border: 2px solid #e6b945;
+    box-shadow: 0 6px 18px rgba(230, 185, 66, 0.12);
+    color: #2f2207;
+    position: relative;
+    overflow: hidden;
+}
+.meta-card .icon {
+    color: #b97f00;
+}
+.meta-card .main-value {
+    color: #2f2207;
+    font-weight: 800;
+}
+/* Aplicar distintivo solo cuando la tarjeta es una stats-card con clase meta-card */
+.stats-card.meta-card::after {
+    content: "UTILIDAD";
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #5a3200;
+    background: rgba(255, 219, 138, 0.65);
+    padding: 3px 8px;
+    border-radius: 12px;
+    letter-spacing: 0.6px;
+}
+
+/* Hacer que la progress-card adquiera el estilo de meta when it has the class meta-card */
+.progress-card.meta-card {
+    /* reaplicar el estilo destacado de .meta-card respetando la estructura de progress-card */
+    background: linear-gradient(135deg, #fff4d9 0%, #fff9ee 100%);
+    border: 2px solid #e6b945;
+    box-shadow: 0 6px 18px rgba(230, 185, 66, 0.12);
+    color: #2f2207;
+    position: relative;
+    overflow: hidden;
+}
+.progress-card.meta-card .progress-label {
+    color: #5a3200;
+}
+.progress-card.meta-card .progress-bar-fg {
+    /* mantener el mismo fill pero se ve mejor con un contraste ligeramente más oscuro */
+    background: linear-gradient(90deg, #b97f00 0%, #f3e2ae 100%);
+}
+/* IMPORTANTE: no existe regla ::after para .progress-card.meta-card, por tanto no se mostrará texto adicional */
+
+@media (max-width: 1200px) {
+    .dashboard-container { max-width: 99vw; padding: 0.5rem 0.2rem; }
+    .dashboard-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 800px) {
+    .dashboard-header { font-size: 1.5rem;}
+    .dashboard-grid { grid-template-columns: 1fr; gap: 0.8rem;}
+    .stats-card, .progress-card { height: 110px; }
+    
+    /* Ajustes responsivos para el modal */
+    .modal-content {
+        width: 95%;
+        padding: 1.5rem;
+        margin: 1rem;
+    }
+    
+    .dashboard-section-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .month-selector-container {
+        align-self: flex-end;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <i class="bi bi-bar-chart-fill"></i> Panel de Control
+    </div>
+    {% if user.role in ['Master', 'Operador'] %}
+    <div class="filter-trader-block">
+        <span class="filter-trader-label"><i class="bi bi-person-badge"></i> Filtrar por trader:</span>
+        <select id="filterTrader" class="filter-trader-select"></select>
+    </div>
+    {% endif %}
+
+    <!-- Estadísticas del Día -->
+    <div class="dashboard-section-title"><i class="bi bi-calendar-day"></i> Estadísticas del Día</div>
+    <div class="dashboard-grid">
+        <div class="stats-card">
+            <span class="icon"><i class="bi bi-people-fill"></i></span>
+            <div class="main-value" id="stat_clients_today">0</div>
+            <div class="label">Clientes</div>
+        </div>
+        <div class="stats-card">
+            <span class="icon"><i class="bi bi-cash-stack"></i></span>
+            <div class="main-value" id="stat_operations_today">0</div>
+            <div class="label">Operaciones</div>
+        </div>
+        <div class="stats-card">
+            <span class="icon"><i class="bi bi-currency-dollar"></i></span>
+            <div class="main-value" id="stat_usd_today">$ 0.00</div>
+            <div class="label">Monto USD</div>
+        </div>
+        <div class="stats-card">
+            <span class="icon"><i class="bi bi-currency-exchange"></i></span>
+            <div class="main-value" id="stat_pen_today">S/ 0.00</div>
+            <div class="label">Monto Soles</div>
+        </div>
+        <div class="stats-card editable-card" data-field="utilidad_dia">
+            <span class="icon"><i class="bi bi-graph-up"></i></span>
+            <span id="utilidad_dia_valor" class="main-value"></span>
+            <div class="label">Utilidad hoy</div>
+        </div>
+    </div>
+
+    <!-- Estadísticas del Mes -->
+    <div class="dashboard-section-title">
+        <span><i class="bi bi-calendar3"></i> Estadísticas del Mes</span>
+        <div class="month-selector-container">
+            <span class="month-selector-label">Mes:</span>
+            <select id="monthSelector" class="month-selector">
+                <!-- Las opciones se llenarán con JavaScript -->
+            </select>
+        </div>
+    </div>
+    <div class="dashboard-grid">
+        <div class="stats-card">
+            <span class="icon"><i class="bi bi-people-fill"></i></span>
+            <div class="main-value" id="stat_clients_month">0</div>
+            <div class="label">Clientes</div>
+        </div>
+        <div class="stats-card">
+            <span class="icon"><i class="bi bi-cash-stack"></i></span>
+            <div class="main-value" id="stat_operations_month">0</div>
+            <div class="label">Operaciones</div>
+        </div>
+        <div class="stats-card">
+            <span class="icon"><i class="bi bi-currency-dollar"></i></span>
+            <div class="main-value" id="stat_usd_month">$ 0.00</div>
+            <div class="label">Monto USD</div>
+        </div>
+        <div class="stats-card">
+            <span class="icon"><i class="bi bi-currency-exchange"></i></span>
+            <div class="main-value" id="stat_pen_month">S/ 0.00</div>
+            <div class="label">Monto Soles</div>
+        </div>
+        <div class="stats-card editable-card" data-field="utilidad_mes">
+            <span class="icon"><i class="bi bi-graph-up"></i></span>
+            <span id="utilidad_mes_valor" class="main-value"></span>
+            <div class="label">Utilidad del mes</div>
+        </div>
+        <div class="stats-card">
+            <span class="icon"><i class="bi bi-person-check-fill"></i></span>
+            <div class="main-value" id="stat_active_clients_month">0</div>
+            <div class="label">Clientes activos</div>
+        </div>
+        <div class="stats-card editable-card meta-card" data-field="meta_mes">
+            <span class="icon"><i class="bi bi-bullseye"></i></span>
+            <span id="meta_mes_valor" class="main-value"></span>
+            <div class="label">Meta</div>
+        </div>
+        <div class="progress-card meta-card">
+            <div class="progress-label"><i class="bi bi-bar-chart-steps"></i> Avance respecto a la meta</div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fg" id="meta_progress_bar" style="width:0%"></div>
+            </div>
+            <div id="meta_progress_text">0%</div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para edición - DEBE ESTAR FUERA DEL CONTENEDOR PRINCIPAL -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitle" style="color: #b9a038; margin-bottom: 1.5rem;">Editar Valor</h3>
+        <div class="modal-body">
+            <label id="modalLabel" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Valor:</label>
+            <input type="number" step="0.01" id="modalInput" class="input-editable" style="width: 100%; padding: 0.5rem; border: 1.5px solid #b9a038; border-radius: 0.5rem; font-size: 1.1rem;">
+        </div>
+        <div class="modal-actions">
+            <button id="modalCancel" class="btn-cancel">Cancelar</button>
+            <button id="modalSave" class="btn-save">Guardar</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+let currentRole = "{{ user.role }}";
+let currentTraderId = "{{ user.id }}";
+let selectedTraderId = currentTraderId;
+let selectedMonth = ''; // Mes seleccionado (formato YYYY-MM)
+let dashboardInterval = null;
+let editandoCampo = false;
+
+// Función para generar opciones de meses
+function generarOpcionesMeses() {
+    const monthSelector = $('#monthSelector');
+    monthSelector.empty();
+    
+    // Meses en español
+    const meses = [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    
+    const ahora = new Date();
+    const añoActual = ahora.getFullYear();
+    const mesActual = ahora.getMonth(); // 0-11
+    
+    // Mes actual por defecto
+    const mesActualStr = `${añoActual}-${(mesActual + 1).toString().padStart(2, '0')}`;
+    selectedMonth = mesActualStr;
+    
+    // Agregar meses disponibles
+    // Mes actual
+    monthSelector.append(`<option value="${mesActualStr}">${meses[mesActual]} ${añoActual}</option>`);
+            
+    // También podemos agregar meses anteriores del año actual
+    for (let i = mesActual - 1; i >= 0; i--) {
+        const mesStr = `${añoActual}-${(i + 1).toString().padStart(2, '0')}`;
+        monthSelector.append(`<option value="${mesStr}">${meses[i]} ${añoActual}</option>`);
+    }
+    
+    // Configurar evento de cambio
+    monthSelector.off('change').on('change', function() {
+        selectedMonth = $(this).val();
+        cargarTradersYDashboard(selectedTraderId);
+    });
+}
+
+function cargarTradersYDashboard(trader_id=null) {
+    const params = {};
+    if (trader_id) params.trader_id = trader_id;
+    if (selectedMonth) params.month = selectedMonth;
+    
+    $.getJSON('/api/dashboard_data', params, function(data){
+        if (data.role === "Master" || data.role === "Operador") {
+            let $select = $('#filterTrader');
+            $select.empty();
+            $select.append(`<option value="">Todos</option>`);
+            data.traders.forEach(function(tr){
+                $select.append(`<option value="${tr.id}" ${data.trader_id==tr.id?'selected':''}>${tr.username}</option>`);
+            });
+            selectedTraderId = data.trader_id ? data.trader_id : "";
+        }
+        renderStats(data);
+        activarCamposEditables(data);
+    });
+}
+
+function renderStats(data) {
+    $('#stat_clients_today').text(data.clients_today);
+    $('#stat_clients_month').text(data.clients_month);
+    $('#stat_active_clients_month').text(data.active_clients_month);
+    $('#stat_operations_today').text(data.operations_today);
+    $('#stat_operations_month').text(data.operations_month);
+    $('#stat_usd_today').text('$ ' + Number(data.usd_today).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}));
+    $('#stat_pen_today').text('S/ ' + Number(data.pen_today).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2}));
+    $('#stat_usd_month').text('$ ' + Number(data.usd_month).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}));
+    $('#stat_pen_month').text('S/ ' + Number(data.pen_month).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2}));
+    $('#utilidad_dia_valor').text('S/ ' + Number(data.utilidad_dia).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2}));
+    $('#utilidad_mes_valor').text('S/ ' + Number(data.utilidad_mes).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2}));
+    $('#meta_mes_valor').text('S/ ' + Number(data.meta_mes).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2}));
+    $('#meta_progress_bar').css('width', data.avance + '%');
+    $('#meta_progress_text').text(data.avance + '%');
+    
+    // Agregar tooltips después de renderizar
+    setTimeout(agregarTooltips, 100);
+}
+
+function activarCamposEditables(data) {
+    // Solo permitir edición si es Master Y hay un trader específico seleccionado Y no está en modo "Todos" Y es el mes actual
+    const esMesActual = selectedMonth === '' || selectedMonth === new Date().toISOString().slice(0,7);
+    let allowEdit = (currentRole === "Master") && selectedTraderId && !data.modo_todos && esMesActual;
+    
+    if (!allowEdit) {
+        // Si no puede editar, remover cualquier funcionalidad existente
+        $('.editable-card .main-value').css('cursor', 'default').off('click');
+        $('.editable-card').addClass('no-editable');
+        
+        // Si está en modo "Todos", mostrar tooltip informativo
+        if (currentRole === "Master" && data.modo_todos) {
+            $('.editable-card .main-value').each(function() {
+                const $this = $(this);
+                $this.attr('title', 'Modo "Todos" - Valores sumados de todos los traders');
+            });
+        }
+        // Si no es el mes actual, mostrar tooltip informativo
+        if (currentRole === "Master" && !esMesActual) {
+            $('.editable-card .main-value').each(function() {
+                const $this = $(this);
+                $this.attr('title', 'Solo se puede editar en el mes actual');
+            });
+        }
+        return;
+    }
+
+    // Configurar eventos para los campos editables (solo cuando hay trader específico seleccionado)
+    $('.editable-card').removeClass('no-editable');
+    $('.editable-card').each(function() {
+        const $card = $(this);
+        const field = $card.data('field');
+        const $valorSpan = $card.find('.main-value');
+        const currentValue = data[field] || 0;
+
+        // Formatear el valor mostrado
+        $valorSpan.text('S/ ' + Number(currentValue).toLocaleString('es-PE', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }));
+
+        // Agregar funcionalidad de clic
+        $valorSpan.css('cursor', 'pointer').off('click').on('click', function() {
+            abrirModalEdicion(field, currentValue, $valorSpan);
+        });
+
+        // Efecto hover para indicar que es editable
+        $card.hover(
+            function() {
+                $(this).css('border-color', '#b9a038');
+            },
+            function() {
+                $(this).css('border-color', '#ececec');
+            }
+        );
+    });
+}
+
+function abrirModalEdicion(field, currentValue, $elemento) {
+    const fieldLabels = {
+        'utilidad_dia': 'Utilidad del Día',
+        'utilidad_mes': 'Utilidad del Mes', 
+        'meta_mes': 'Meta del Mes'
+    };
+
+    $('#modalTitle').text('Editar ' + fieldLabels[field]);
+    $('#modalLabel').text(fieldLabels[field] + ' (S/):');
+    $('#modalInput').val(currentValue);
+    
+    // Mostrar modal
+    $('#editModal').show();
+    
+    // Enfocar el input
+    $('#modalInput').focus();
+    
+    // Configurar evento de guardado
+    $('#modalSave').off('click').on('click', function() {
+        guardarValor(field, $elemento);
+    });
+    
+    // Configurar evento de cancelar
+    $('#modalCancel').off('click').on('click', function() {
+        $('#editModal').hide();
+    });
+    
+    // Cerrar modal al hacer clic fuera
+    $('#editModal').off('click').on('click', function(e) {
+        if (e.target === this) {
+            $('#editModal').hide();
+        }
+    });
+    
+    // Cerrar con tecla Escape
+    $(document).off('keyup.modal').on('keyup.modal', function(e) {
+        if (e.key === 'Escape') {
+            $('#editModal').hide();
+        }
+    });
+}
+
+function guardarValor(field, $elemento) {
+    const nuevoValor = parseFloat($('#modalInput').val());
+    
+    if (isNaN(nuevoValor) || nuevoValor < 0) {
+        alert("Por favor ingrese un número válido mayor o igual a 0");
+        $('#modalInput').focus();
+        return;
+    }
+
+    const postData = { 
+        trader_id: selectedTraderId, 
+        year_month: selectedMonth || (new Date()).toISOString().slice(0,7)
+    };
+    postData[field] = nuevoValor;
+
+    // Obtener token CSRF
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    // Mostrar loading
+    $('#modalSave').html('<i class="bi bi-hourglass-split"></i> Guardando...').prop('disabled', true);
+
+    $.ajax({
+        url: '/api/set_trader_stats',
+        method: 'POST',
+        data: postData,
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .done(function(resp) {
+        if (resp.success) {
+            // Actualizar visualmente el valor
+            $elemento.text('S/ ' + Number(nuevoValor).toLocaleString('es-PE', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }));
+            
+            // Recalcular progreso si es meta_mes
+            if (field === 'meta_mes') {
+                // Forzar recarga de datos para actualizar progreso
+                cargarTradersYDashboard(selectedTraderId);
+            }
+            
+            $('#editModal').hide();
+        } else {
+            alert(resp.msg || "Error al guardar el valor");
+        }
+    })
+    .fail(function(xhr, status, error) {
+        console.error('Error detallado:', xhr.responseText);
+        if (xhr.status === 400) {
+            try {
+                const errorData = JSON.parse(xhr.responseText);
+                alert(errorData.msg || "Error en los datos enviados: " + errorData.error);
+            } catch (e) {
+                alert("Error 400: Datos inválidos enviados al servidor");
+            }
+        } else if (xhr.status === 403) {
+            alert("No tienes permisos para realizar esta acción");
+        } else {
+            alert("Error de conexión al guardar: " + error);
+        }
+    })
+    .always(function() {
+        $('#modalSave').html('Guardar').prop('disabled', false);
+    });
+}
+
+// Agregar tooltips para indicar que son editables
+function agregarTooltips() {
+    if (currentRole === "Master") {
+        $('.editable-card .main-value').each(function() {
+            const $this = $(this);
+            if (selectedTraderId) {
+                const esMesActual = selectedMonth === '' || selectedMonth === new Date().toISOString().slice(0,7);
+                if (esMesActual) {
+                    $this.attr('title', 'Haz clic para editar este valor');
+                } else {
+                    $this.attr('title', 'Solo se puede editar en el mes actual');
+                }
+            } else {
+                $this.attr('title', 'Modo "Todos" - Valores sumados de todos los traders');
+            }
+        });
+    }
+}
+
+$(document).ready(function(){
+    // Generar opciones de meses primero
+    generarOpcionesMeses();
+    
+    // Luego cargar el dashboard
+    cargarTradersYDashboard();
+    
+    dashboardInterval = setInterval(function(){ 
+        if(!editandoCampo) cargarTradersYDashboard(selectedTraderId); 
+    }, 4000);
+    
+    $('#filterTrader').on('change', function(){
+        let val = $(this).val();
+        cargarTradersYDashboard(val ? val : null);
+    });
+});
+</script>
+{% endblock %}

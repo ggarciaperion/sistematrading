@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}QoriCash{% endblock %}</title>
+
+    <!-- Dependencias -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+
+    <style>
+    /* ------------------------------
+       Estilos globales (sin modificar la estructura del sistema)
+       ------------------------------ */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 220px;
+        height: 100vh;
+        background: #212529;
+        color: #fff;
+        z-index: 1040;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 2px 0 8px 0 rgba(0,0,0,0.07);
+    }
+    .sidebar-header {
+        padding: 1.5rem 1rem 1rem 1.5rem;
+        background: #181d22;
+        font-size: 1.2em;
+        font-weight: bold;
+        letter-spacing: 1px;
+        border-bottom: 1px solid #222;
+    }
+    .sidebar .main-menu-list { list-style: none; padding-left: 0; margin: 0; flex-grow: 1; margin-top: 25px; }
+    .sidebar .main-menu-list .nav-item { width: 100%; }
+    .sidebar .main-menu-list .nav-link {
+        color: #ccc; background: none; border: none; padding: 0.85em 1.5em;
+        width: 100%; display: block; font-size: 1.05em; text-align: left; transition: background 0.15s, color 0.15s;
+    }
+    .sidebar .main-menu-list .nav-link.active,
+    .sidebar .main-menu-list .nav-link:hover { background: #343a40; color: #fff; }
+    .sidebar-footer { padding: 1.25em 1em; border-top: 1px solid #262a2e; margin-top: auto; background: #181d22; font-size: 0.97em; }
+    .datetime-display { font-size: 0.75em; color: #adb5bd; text-align: center; padding: 10px 15px; background: #2c3034; border-top: 1px solid #444; border-bottom: 1px solid #444; font-weight: normal; letter-spacing: 0.5px; line-height: 1.3; }
+    @media (max-width: 991px) { .sidebar { width: 100vw; height: auto; position: relative;} .sidebar-header, .sidebar-footer { text-align: center; } }
+    .main-content { margin-left: 220px; padding: 2em 1em 1em 1em; }
+    @media (max-width: 991px) { .main-content { margin-left: 0; padding: 1em; } }
+
+    .notification-container { position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 420px; }
+    .notification { background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin-bottom: 12px; padding: 12px; border-left: 4px solid #b9a038; display: flex; gap: 10px; align-items: flex-start; animation: qc-slide-in 0.28s ease-out; }
+    .notification .notification-icon { font-size: 1.3rem; margin-right: 6px; }
+    .notification .notification-title { font-weight:700; margin-bottom:4px; color:#222; }
+    .notification .notification-message { color:#555; font-size:0.92rem; }
+    .notification .notification-time { color:#999; font-size:0.78rem; margin-top:6px; }
+    .notification .notification-close { background:none; border:0; font-size:1.1rem; color:#888; cursor:pointer; margin-left:6px; }
+    @keyframes qc-slide-in { from { transform: translateX(18px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .notification.hiding { animation: qc-slide-out 0.24s ease-in forwards; }
+    @keyframes qc-slide-out { from { opacity:1; transform:translateX(0);} to {opacity:0; transform:translateX(18px);} }
+
+    .help-block { font-size: 0.88rem; color: #6b7280; }
+    .valid-msg { color: #198754; font-weight:700; }
+    .invalid-msg { color: #dc3545; font-weight:700; }
+
+    /* Botón ojo */
+    .btn-eye {
+      min-width: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: .375rem .5rem;
+      border-radius: .375rem;
+    }
+
+    /* --------------------------------------------------------------------
+       ESTILOS UNIFICADOS PARA EL MODAL "Mi Perfil"
+       Tomamos el estilo de referencia del modal mostrado en "Posición":
+       - etiquetas en dorado (#b9a038)
+       - fondo blanco y título oscuro
+       - botón Verificar oscuro y compacto
+       - iconos ojo oscuros (fondo casi negro)
+       -------------------------------------------------------------------- */
+    #profileModal .modal-content { border-radius: 8px; border: 1px solid rgba(0,0,0,0.06); background: #fff; }
+    #profileModal .modal-header { background: transparent; color: #0f1724; border-bottom: 1px solid rgba(0,0,0,0.08); }
+    #profileModal .modal-title { font-weight: 600; color: #0f1724; }
+    #profileModal .modal-body { background: #fff; color: #212529; }
+
+    /* Labels / headings in the modal use the gold color from Posición view */
+    #profileModal .form-label,
+    #profileModal .form-text,
+    #profileModal .modal-body .form-label.small {
+      color: #b9a038;
+      font-weight: 600;
+    }
+
+    /* Inputs readonly neutral */
+    #profileModal .form-control[readonly] { background-color: #eef0f2; color: #212529; border: 1px solid #e6e9eb; }
+
+    /* Botón Verificar (oscuro) */
+    #profileModal .btn-verify {
+      background: #0f1724;
+      color: #fff;
+      border: none;
+      padding: .45rem .75rem;
+      border-radius: .375rem;
+    }
+    #profileModal .btn-verify:disabled { opacity: .7; }
+
+    /* Ojos: estilo consistente con Posición */
+    #profileModal .btn-eye {
+      background: #111827;
+      color: #fff;
+      border: none;
+    }
+    #profileModal .btn-eye:focus { box-shadow: none; }
+
+    #profileModal .modal-body hr { border-color: rgba(0,0,0,0.08); }
+    </style>
+
+    {% block head %}{% endblock %}
+</head>
+<body>
+    {% if user %}
+        <!-- Barra lateral -->
+        <nav id="sidebar" class="sidebar bg-dark text-white">
+            <div class="sidebar-header" style="display:flex; align-items:center; justify-content:center;">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo QoriCash" style="height:130px; max-width:200px;">
+            </div>
+
+            <ul class="nav flex-column main-menu-list">
+                <li class="nav-item"><a href="{{ url_for('dashboard') }}" class="nav-link{% if 'dashboard' in request.endpoint %} active{% endif %}">Dashboard</a></li>
+                <li class="nav-item"><a href="{{ url_for('gestion_clientes') }}" class="nav-link{% if 'gestion_clientes' in request.endpoint %} active{% endif %}">Gestión Clientes</a></li>
+                <li class="nav-item"><a href="{{ url_for('create_operation') }}" class="nav-link{% if 'create_operation' in request.endpoint %} active{% endif %}">Operaciones</a></li>
+                <li class="nav-item"><a href="{{ url_for('operations') }}" class="nav-link{% if 'operations' in request.endpoint %} active{% endif %}">Historial Operaciones</a></li>
+                {% if user.role == 'Master' or user.role == 'Operador' %}
+                <li class="nav-item"><a href="{{ url_for('posicion') }}" class="nav-link{% if 'posicion' in request.endpoint %} active{% endif %}">Posición</a></li>
+                {% endif %}
+                {% if user.role == 'Master' %}
+                <li class="nav-item"><a href="{{ url_for('manage_users') }}" class="nav-link{% if 'manage_users' in request.endpoint %} active{% endif %}">Administrar Usuarios</a></li>
+                {% endif %}
+            </ul>
+
+            <div id="current-datetime" class="datetime-display"></div>
+
+            <div class="sidebar-footer mt-auto">
+                <span class="navbar-text d-block mb-2">Hola, {{ user.username }} ({{ user.role }})</span>
+
+                <button id="btnOpenProfile" class="btn btn-outline-light btn-sm w-100 mb-2" type="button">
+                    <i class="bi bi-person-circle me-1"></i> Mi Perfil
+                </button>
+
+                <a class="btn btn-outline-light btn-sm w-100" href="{{ url_for('logout') }}">Cerrar Sesión</a>
+            </div>
+        </nav>
+
+        <div class="main-content">
+            {{ self.content() }}
+        </div>
+    {% else %}
+        <div class="container py-5">
+            <div class="row justify-content-center">
+                <div class="col-md-6 col-lg-4">
+                    {{ self.content() }}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Modal 'Mi Perfil' -->
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-md">
+        <div class="modal-content">
+          <form id="profileForm" enctype="multipart/form-data">
+            <div class="modal-header">
+              <h5 class="modal-title" id="profileModalLabel"><i class="bi bi-person-lines-fill me-2"></i>Mi Perfil</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body">
+              <div class="row g-3">
+                  <div class="col-12 text-center">
+                      <img id="profile-photo-preview" src="{{ url_for('static', filename='logo.png') }}" alt="Foto perfil" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:1px solid #e9ecef;">
+                      <div class="mt-2">
+                          <!-- Habilitado para que el usuario pueda cargar su foto -->
+                          <input id="profile-photo-input" type="file" accept="image/*" style="display:none;">
+                          <button type="button" id="btnSelectPhoto" class="btn btn-sm btn-secondary mt-2" title="Cargar/Actualizar foto">Cargar foto</button>                          
+                          <small class="d-block text-muted mt-1">Actualiza tu foto de perfil (formato imagen)</small>
+                      </div>
+                  </div>
+
+                  <div class="col-md-12">
+                      <label class="form-label">Nombres</label>
+                      <input type="text" id="profile_nombres" name="nombres" class="form-control" readonly>
+                  </div>
+
+                  <div class="col-md-6">
+                      <label class="form-label">N° de Doc.</label>
+                      <input type="text" id="profile_dni" name="dni" class="form-control" readonly>
+                  </div>
+                  <div class="col-md-6">
+                      <label class="form-label">Correo</label>
+                      <input type="email" id="profile_email" name="email" class="form-control" readonly>
+                  </div>
+
+                  <div class="col-md-6">
+                      <label class="form-label">Rol</label>
+                      <input type="text" id="profile_role" name="role" class="form-control" readonly>
+                  </div>
+                  <div class="col-md-6">
+                      <label class="form-label">Estado</label>
+                      <input type="text" id="profile_status" name="status" class="form-control" readonly>
+                  </div>
+
+                  <div class="col-12">
+                      <label class="form-label">Último inicio de sesión</label>
+                      <input type="text" id="profile_last_login" class="form-control" readonly>
+                  </div>
+
+                  <hr class="my-2">
+
+                  <!-- Cambio de contraseña -->
+                  <div class="col-12">
+                      <label class="form-label">Cambiar contraseña</label>
+                      <div class="row g-2">
+                          <div class="col-12">
+                              <label class="form-label small">Contraseña actual</label>
+                              <div class="input-group">
+                                  <input type="password" id="current_password" class="form-control" placeholder="Ingrese su contraseña actual" autocomplete="current-password">
+                                  <button id="toggleCurrentPwd" class="btn btn-eye" type="button" title="Mostrar / Ocultar contraseña"><i class="bi bi-eye"></i></button>
+                                  <button id="btnVerifyCurrent" type="button" class="btn btn-verify ms-1">Verificar</button>
+                              </div>
+                              <div id="currentPwdFeedback" class="help-block mt-1"></div>
+                          </div>
+
+                          <div class="col-12">
+                              <label class="form-label small">Nueva contraseña</label>
+                              <div class="input-group">
+                                  <input type="password" id="new_password" class="form-control" placeholder="Mínimo 8 caracteres y al menos un número" autocomplete="new-password">
+                                  <button id="toggleNewPwd" class="btn btn-eye" type="button" title="Mostrar / Ocultar contraseña"><i class="bi bi-eye"></i></button>
+                              </div>
+                              <div id="newPwdFeedback" class="help-block mt-1"></div>
+                          </div>
+                      </div>
+                      <small class="form-text text-muted mt-2">Para cambiar la contraseña, primero verifique su contraseña actual con el botón "Verificar".</small>
+                  </div>
+
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <input type="hidden" id="profile_user_id" value="{{ user.id }}">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+              <button type="submit" id="btnSubmitProfile" class="btn btn-primary">Guardar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+    // Reloj
+    function updateDateTime() {
+        const now = new Date();
+        const options = {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+        };
+        const dateTimeString = now.toLocaleDateString('es-ES', options);
+        const el = document.getElementById('current-datetime');
+        if (el) el.textContent = dateTimeString;
+    }
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    </script>
+
+    {% block scripts %}{% endblock %}
+
+    <script>
+    (function(){
+      // Variables
+      const userId = $('#profile_user_id').val() || '{{ user.id }}';
+      const username = "{{ user.username }}";
+      let currentPasswordVerified = false;
+      let verifyTriedFormFallback = false;
+
+      // CSRF token helper (usa el endpoint que ya tienes)
+      function getCsrfToken() {
+        return $.get('/get_csrf_token').then(d => d.csrf_token).catch(()=>{return null;});
+      }
+
+      /* -----------------------------------------------------------
+         Aplicar estilos inline tipo "Posición" cuando el modal se abre
+         y removerlos al cerrarlo. Esto asegura que el modal siempre
+         tenga el mismo aspecto, incluso si hay CSS temático externo.
+         ----------------------------------------------------------- */
+      function applyLockedStylesPosicion() {
+        const modal = document.getElementById('profileModal');
+        if (!modal) return;
+        const content = modal.querySelector('.modal-content');
+        const header = modal.querySelector('.modal-header');
+        const body = modal.querySelector('.modal-body');
+        const title = modal.querySelector('.modal-title');
+        const closeBtn = modal.querySelector('.btn-close');
+        const labels = modal.querySelectorAll('.form-label, .form-text, .modal-body .form-label.small');
+
+        if (content) {
+          content.style.setProperty('background', '#ffffff', 'important');
+          content.style.setProperty('border-radius', '8px', 'important');
+          content.style.setProperty('border', '1px solid rgba(0,0,0,0.06)', 'important');
+        }
+        if (header) {
+          header.style.setProperty('background', 'transparent', 'important');
+          header.style.setProperty('color', '#0f1724', 'important');
+          header.style.setProperty('border-bottom', '1px solid rgba(0,0,0,0.08)', 'important');
+        }
+        if (body) {
+          body.style.setProperty('background', '#ffffff', 'important');
+          body.style.setProperty('color', '#212529', 'important');
+        }
+        if (title) {
+          title.style.setProperty('color', '#0f1724', 'important');
+          title.style.setProperty('font-weight', '600', 'important');
+        }
+        if (closeBtn) {
+          closeBtn.style.setProperty('filter', 'none', 'important');
+        }
+        labels.forEach(function(l){
+          l.style.setProperty('color', '#b9a038', 'important');
+          l.style.setProperty('font-weight', '600', 'important');
+        });
+
+        const btnVerify = modal.querySelector('#btnVerifyCurrent');
+        if (btnVerify) {
+          btnVerify.style.setProperty('background', '#0f1724', 'important');
+          btnVerify.style.setProperty('color', '#fff', 'important');
+          btnVerify.style.setProperty('border', 'none', 'important');
+        }
+        const btnEyes = modal.querySelectorAll('.btn-eye');
+        btnEyes.forEach(function(b){
+          b.style.setProperty('background', '#111827', 'important');
+          b.style.setProperty('color', '#fff', 'important');
+          b.style.setProperty('border', 'none', 'important');
+        });
+
+        // readonly inputs neutral
+        const readonlys = modal.querySelectorAll('.form-control[readonly]');
+        readonlys.forEach(function(i){
+          i.style.setProperty('background-color', '#eef0f2', 'important');
+          i.style.setProperty('border', '1px solid #e6e9eb', 'important');
+          i.style.setProperty('color', '#212529', 'important');
+        });
+      }
+
+      function removeLockedStylesPosicion() {
+        const modal = document.getElementById('profileModal');
+        if (!modal) return;
+        // quitamos propiedades específicas aplicadas
+        const nodes = modal.querySelectorAll('[style]');
+        nodes.forEach(function(el){
+          ['background','border-radius','border','color','font-weight','filter','background-color'].forEach(function(prop){
+            try { el.style.removeProperty(prop); } catch(e){}
+          });
+        });
+      }
+
+      $('#profileModal').on('show.bs.modal', function () { applyLockedStylesPosicion(); });
+      $('#profileModal').on('hidden.bs.modal', function () { removeLockedStylesPosicion(); });
+
+      /* -----------------------------------------------------------
+         Toggle mostrar/ocultar contraseña (iconos ojo)
+         ----------------------------------------------------------- */
+      function togglePassword(inputSelector, iconSelector) {
+        const $input = $(inputSelector);
+        const $icon = $(iconSelector);
+        if ($input.attr('type') === 'password') {
+          $input.attr('type', 'text');
+          $icon.removeClass('bi-eye').addClass('bi-eye-slash');
+        } else {
+          $input.attr('type', 'password');
+          $icon.removeClass('bi-eye-slash').addClass('bi-eye');
+        }
+      }
+      $('#toggleCurrentPwd').on('click', function(e){ e.preventDefault(); togglePassword('#current_password', '#toggleCurrentPwd i'); });
+      $('#toggleNewPwd').on('click', function(e){ e.preventDefault(); togglePassword('#new_password', '#toggleNewPwd i'); });
+
+      /* -----------------------------------------------------------
+         populateProfile: primero usamos /get_user para obtener last_login
+         (ahora PRIORITARIO). /api/search_users queda como fallback.
+         ----------------------------------------------------------- */
+      function populateProfile() {
+        const p1 = $.getJSON('/get_user/' + encodeURIComponent(userId)).catch(()=>null);
+        const p2 = $.getJSON('/api/search_users?q=' + encodeURIComponent(username)).catch(()=>null);
+
+        return $.when(p1, p2).then(function(userData, searchData){
+          // jQuery returns arrays in $.when; adaptamos
+          const u = userData && userData[0] ? userData[0] : (userData || null);
+          const s = searchData && searchData[0] ? searchData[0] : (searchData || null);
+
+          if (u) {
+            $('#profile_nombres').val(u.username || '');
+            $('#profile_dni').val(u.dni || '');
+            $('#profile_email').val(u.email || '');
+            $('#profile_role').val(u.role || '');
+            $('#profile_status').val(u.status || '');
+            $('#profile_user_id').val(u.id || userId);
+          }
+
+          // PRIORIDAD: usar last_login que devuelve /get_user si existe
+          let lastLogin = '';
+          if (u && u.last_login) {
+            lastLogin = u.last_login;
+          } else {
+            // fallback: buscar en searchData
+            if (Array.isArray(s) && s.length > 0) {
+              const match = s.find(x => String(x.id) === String(userId) || (x.username && x.username.toLowerCase() === username.toLowerCase()));
+              if (match && match.last_login) lastLogin = match.last_login;
+            } else if (s && s.last_login) {
+              lastLogin = s.last_login;
+            }
+          }
+
+          // Opcional: formateo sencillo (si tu DB guarda "YYYY-MM-DD HH:MM:SS" lo mostramos tal cual,
+          // si quieres otro formato indícamelo y lo aplico aquí)
+          $('#profile_last_login').val(lastLogin || '');
+
+          // Cargar foto desde localStorage si existe (solo vista)
+          try {
+            const key = 'qc_profile_photo_' + (u && u.id ? u.id : userId);
+            const dataUrl = localStorage.getItem(key);
+            if (dataUrl) $('#profile-photo-preview').attr('src', dataUrl);
+          } catch (e) { console.warn('No se pudo cargar foto de localStorage', e); }
+        });
+      }
+
+      /* -----------------------------------------------------------
+         Abrir modal (poblar + mostrar)
+         ----------------------------------------------------------- */
+      $('#btnOpenProfile').on('click', function(e){
+        e.preventDefault();
+        populateProfile().then(()=> {
+          currentPasswordVerified = false;
+          verifyTriedFormFallback = false;
+          $('#currentPwdFeedback').text('').removeClass('valid-msg invalid-msg');
+          $('#newPwdFeedback').text('').removeClass('valid-msg invalid-msg');
+          $('#current_password').val('').attr('type','password');
+          $('#new_password').val('').attr('type','password');
+          $('#toggleCurrentPwd i, #toggleNewPwd i').removeClass('bi-eye-slash').addClass('bi-eye');
+          $('#btnVerifyCurrent').text('Verificar').prop('disabled', false).removeClass('btn-success').addClass('btn-outline-primary');
+          var modal = new bootstrap.Modal(document.getElementById('profileModal'));
+          modal.show();
+        });
+      });
+
+      /* -----------------------------------------------------------
+         Imagen de perfil: selector, preview, guardar en localStorage y eliminar
+         - Se mantiene local (no hay endpoint de subida en este cambio).
+         - Si quieres que también se guarde en el servidor, puedo añadir el endpoint y la lógica.
+         ----------------------------------------------------------- */
+      $('#btnSelectPhoto').on('click', function(e){
+        e.preventDefault();
+        $('#profile-photo-input').trigger('click');
+      });
+
+      $('#profile-photo-input').on('change', function(e){
+        const file = this.files && this.files[0];
+        if (!file) return;
+        // validar tipo y tamaño razonable (ej. 5MB)
+        if (!file.type.startsWith('image/')) {
+          alert('Selecciona un archivo de imagen válido.');
+          return;
+        }
+        const maxMB = 5;
+        if (file.size > maxMB * 1024 * 1024) {
+          alert('La imagen excede el tamaño máximo de ' + maxMB + ' MB.');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          const dataUrl = ev.target.result;
+          // mostrar preview
+          $('#profile-photo-preview').attr('src', dataUrl);
+          // guardar en localStorage para persistir en el navegador
+          try {
+            const key = 'qc_profile_photo_' + userId;
+            localStorage.setItem(key, dataUrl);
+            showTempToast('Foto guardada localmente.');
+          } catch (err) {
+            console.warn('No se pudo guardar la foto en localStorage', err);
+            showTempToast('Foto cargada (no se pudo guardar localmente).', 5000);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+
+      $('#btnRemovePhoto').on('click', function(e){
+        e.preventDefault();
+        if (!confirm('¿Deseas eliminar tu foto de perfil localmente?')) return;
+        try {
+          const key = 'qc_profile_photo_' + userId;
+          localStorage.removeItem(key);
+        } catch (err) { console.warn(err); }
+        // restaurar imagen por defecto
+        $('#profile-photo-preview').attr('src', '{{ url_for("static", filename="logo.png") }}');
+        showTempToast('Foto eliminada (localmente).');
+      });
+
+      function showTempToast(msg, timeout=2500) {
+        // pequeño toast visual dentro del modal
+        const $t = $(`<div class="alert alert-info small mb-2">${msg}</div>`);
+        $('#profileModal .modal-body').prepend($t);
+        setTimeout(()=>{$t.fadeOut(300, ()=>$t.remove());}, timeout);
+      }
+
+      /* -----------------------------------------------------------
+         Verificar contraseña actual (AJAX) + fallback form-urlencoded
+         ----------------------------------------------------------- */
+      $('#btnVerifyCurrent').on('click', function(){
+        const current = $('#current_password').val() || '';
+        $('#currentPwdFeedback').removeClass('valid-msg invalid-msg').text('');
+        if (!current) {
+          $('#currentPwdFeedback').addClass('invalid-msg').text('Ingrese su contraseña actual para verificar.');
+          return;
+        }
+
+        getCsrfToken().then(function(token){
+          $.ajax({
+            url: '/validate_password',
+            method: 'POST',
+            contentType: 'application/json',
+            dataType: 'json',
+            data: JSON.stringify({ user_id: userId, password: current }),
+            headers: token ? {'X-CSRFToken': token} : {},
+            success: function(resp){
+              if (resp && resp.ok) {
+                currentPasswordVerified = true;
+                $('#currentPwdFeedback').removeClass('invalid-msg').addClass('valid-msg').text('Contraseña verificada. Ahora puede proceder a cambiarla.');
+                $('#btnVerifyCurrent').text('Verificado').prop('disabled', true).addClass('btn-success').removeClass('btn-outline-primary');
+              } else {
+                currentPasswordVerified = false;
+                const msg = (resp && (resp.msg || resp.error)) ? (resp.msg || resp.error) : 'Contraseña incorrecta.';
+                $('#currentPwdFeedback').removeClass('valid-msg').addClass('invalid-msg').text(msg);
+              }
+            },
+            error: function(xhr){
+              let serverMsg = '';
+              if (xhr.status === 0) {
+                serverMsg = 'No se pudo conectar al servidor. Verifique su conexión o inténtelo más tarde.';
+              } else {
+                try {
+                  const j = JSON.parse(xhr.responseText || '{}');
+                  serverMsg = j.msg || j.error || xhr.responseText || ('Error ' + xhr.status);
+                } catch (e) {
+                  serverMsg = xhr.responseText || ('Error ' + xhr.status + ' ' + (xhr.statusText || ''));
+                }
+              }
+
+              if (!verifyTriedFormFallback) {
+                verifyTriedFormFallback = true;
+                // Fallback form-urlencoded
+                $.ajax({
+                  url: '/validate_password',
+                  method: 'POST',
+                  data: { user_id: userId, password: current },
+                  headers: token ? {'X-CSRFToken': token} : {},
+                  success: function(resp2){
+                    if (resp2 && resp2.ok) {
+                      currentPasswordVerified = true;
+                      $('#currentPwdFeedback').removeClass('invalid-msg').addClass('valid-msg').text('Contraseña verificada. Ahora puede proceder a cambiarla.');
+                      $('#btnVerifyCurrent').text('Verificado').prop('disabled', true).addClass('btn-success').removeClass('btn-outline-primary');
+                    } else {
+                      currentPasswordVerified = false;
+                      const msg2 = (resp2 && (resp2.msg || resp2.error)) ? (resp2.msg || resp2.error) : 'Contraseña incorrecta.';
+                      $('#currentPwdFeedback').removeClass('valid-msg').addClass('invalid-msg').text(msg2);
+                    }
+                  },
+                  error: function(xhr2){
+                    let serverMsg2 = '';
+                    if (xhr2.status === 0) serverMsg2 = 'No se pudo conectar al servidor. Verifique su conexión o inténtelo más tarde.';
+                    else {
+                      try {
+                        const j2 = JSON.parse(xhr2.responseText || '{}');
+                        serverMsg2 = j2.msg || j2.error || xhr2.responseText || ('Error ' + xhr2.status);
+                      } catch (e) {
+                        serverMsg2 = xhr2.responseText || ('Error ' + xhr2.status + ' ' + (xhr2.statusText || ''));
+                      }
+                    }
+                    currentPasswordVerified = false;
+                    $('#currentPwdFeedback').removeClass('valid-msg').addClass('invalid-msg').text(serverMsg2);
+                  }
+                });
+              } else {
+                currentPasswordVerified = false;
+                $('#currentPwdFeedback').removeClass('valid-msg').addClass('invalid-msg').text('Verificación fallida: ' + serverMsg);
+              }
+            }
+          });
+        });
+      });
+
+      /* -----------------------------------------------------------
+         Validación cliente para nueva contraseña y envío del formulario
+         ----------------------------------------------------------- */
+      function validateNewPassword(pw) {
+        if (!pw || pw.length < 8) return { ok: false, msg: 'La contraseña debe tener al menos 8 caracteres.' };
+        if (!(/\d/).test(pw)) return { ok: false, msg: 'La contraseña debe contener al menos un número.' };
+        return { ok: true, msg: 'Contraseña válida.' };
+      }
+
+      $('#new_password').on('input', function(){
+        const val = $(this).val();
+        const res = validateNewPassword(val);
+        $('#newPwdFeedback').removeClass('valid-msg invalid-msg');
+        if (val.length === 0) { $('#newPwdFeedback').text(''); return; }
+        if (res.ok) $('#newPwdFeedback').addClass('valid-msg').text(res.msg); else $('#newPwdFeedback').addClass('invalid-msg').text(res.msg);
+      });
+
+      $('#profileForm').on('submit', function(e){
+        e.preventDefault();
+        const newPwd = $('#new_password').val() || '';
+        if (!newPwd) {
+          var modalEl = document.getElementById('profileModal');
+          var modal = bootstrap.Modal.getInstance(modalEl);
+          if (modal) modal.hide();
+          return;
+        }
+        if (!currentPasswordVerified) { alert('Debe verificar su contraseña actual antes de cambiarla.'); return; }
+        const v = validateNewPassword(newPwd);
+        if (!v.ok) { alert(v.msg); return; }
+        const current = $('#current_password').val() || '';
+        const payload = { user_id: userId, current_password: current, new_password: newPwd };
+        getCsrfToken().then(function(token){
+          $.ajax({
+            url: '/change_password',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(payload),
+            headers: token ? {'X-CSRFToken': token} : {},
+            success: function(resp){
+              alert((resp && resp.msg) ? resp.msg : 'Contraseña actualizada correctamente.');
+              var modalEl = document.getElementById('profileModal');
+              var modal = bootstrap.Modal.getInstance(modalEl);
+              if (modal) modal.hide();
+            },
+            error: function(xhr){
+              let msg = 'Error al cambiar la contraseña.';
+              try {
+                const j = JSON.parse(xhr.responseText || '{}');
+                if (j && j.msg) msg = j.msg;
+              } catch(e){}
+              alert(msg);
+            }
+          });
+        });
+      });
+
+    })();
+    </script>
+</body>
+</html>

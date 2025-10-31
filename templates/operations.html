@@ -1,0 +1,794 @@
+{% extends "base.html" %}
+{% block title %}Historial Operaciones - Sistema de Trading de Dólares{% endblock %}
+{% block head %}
+<link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<meta name="csrf-token" content="{{ csrf_token() }}"/>
+<style>
+/* QoriCash Visual Style for Historial de Operaciones */
+
+/* Fondo general y contenedor */
+body, .main-content {
+    background: #fff !important;
+    color: #181d22 !important;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+.card, .table-responsive {
+    background: #f9f9fb;
+    border-radius: 1.08rem;
+    box-shadow: 0 2px 8px rgba(185,160,56,0.07);
+    border: 2px solid #ececec;
+}
+
+/* Encabezados y títulos */
+.card-header, .modal-header, .modal-footer {
+    background: #f3f3f3;
+    border-color: #ececec !important;
+    border-radius: 1.08rem 1.08rem 0 0;
+}
+.card-title, .modal-title, h5, .form-label {
+    color: #b9a038 !important;
+    font-weight: 700;
+    letter-spacing: .5px;
+    font-size: 1.13rem;
+}
+
+/* Botones */
+.btn, .btn-primary, .btn-success, .btn-danger, .btn-warning {
+    border-radius: 0.5rem !important;
+    font-weight: 600;
+    box-shadow: 0 1px 4px rgba(185,160,56,0.09);
+    border: none;
+}
+.btn-primary {
+    background: #b9a038 !important;
+    color: #fff !important;
+}
+.btn-primary:hover {
+    background: #a58c2e !important;
+}
+.btn-success {
+    background: #43a047 !important;
+    color: #fff !important;
+}
+.btn-danger {
+    background: #ffd6d6 !important;
+    color: #a72c2c !important;
+}
+.btn-warning {
+    background: #ffe8b3 !important;
+    color: #8d6700 !important;
+}
+.export-btn {
+    margin-bottom: 15px;
+    border-radius: 0.5rem;
+    font-weight: 600;
+}
+
+/* Inputs y selects */
+input.form-control, select.form-select, textarea.form-control {
+    border-radius: 0.5rem;
+    background: #fafbfc;
+    color: #181d22;
+    border: 1px solid #ececec;
+}
+
+/* Ensure selects and inputs have identical height and vertical alignment inside modal rows */
+#modalOperacion .form-control,
+#modalOperacion .form-select {
+    height: calc(1.5em + 0.75rem + 2px); /* matches bootstrap default input height */
+    padding: .375rem .75rem;
+    display: block;
+    box-sizing: border-box;
+    vertical-align: middle;
+}
+
+/* When selects are disabled, keep them visually similar to inputs */
+#modalOperacion .form-select:disabled {
+    opacity: 1;
+    background: #f3f3f3;
+    color: #6c757d;
+}
+
+/* Make row child columns center their content vertically so selects align with inputs */
+#abonosContainer .abono-row > div,
+#pagosContainer .pago-row > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* vertical center */
+}
+
+/* Keep legacy readonly styling */
+input[readonly], select[readonly], textarea[readonly] {
+    background: #f3f3f3;
+    color: #888;
+}
+input.form-control:focus, select.form-select:focus, textarea.form-control:focus {
+    border-color: #b9a038;
+    box-shadow: 0 0 0 2px #ffe8b344;
+}
+
+/* Filtros */
+#filterForm .form-control {
+    border-radius: 0.5rem;
+    background: #fafbfc;
+    color: #181d22;
+    border: 1px solid #ececec;
+}
+#filterForm .btn-primary {
+    background: #b9a038 !important;
+    color: #fff !important;
+    border-radius: 0.5rem;
+}
+
+/* Tabla de operaciones */
+#operationsTable {
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 2px 12px rgba(185,160,56,0.09);
+}
+#operationsTable th {
+    background: #f3f3f3;
+    color: #b9a038;
+    font-weight: 700;
+    font-size: 1rem;
+    border-top: none !important;
+    border-bottom: 1.3px solid #e7e7e7 !important;
+}
+#operationsTable td {
+    font-size: 0.98rem;
+    border-bottom: 1.3px solid #ececec !important;
+    background: #fff;
+}
+#operationsTable tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+/* Badges de estado */
+.badge.bg-success, .badge.bg-warning, .badge.bg-danger, .badge.bg-info, .badge-estado {
+    font-size: 0.85rem;
+    padding: 0.36em 0.98em;
+    border-radius: 1em;
+    font-weight: 600;
+    border: 1px solid #c5e6bb;
+    margin-left: 0.3em;
+}
+.badge.bg-success { background: #43a047 !important; color: #fff !important; border-color: #d9f5d0 !important; }
+.badge.bg-warning, .badge-estado { background: #ffe8b3 !important; color: #8d6700 !important; border-color: #f3e2ae !important; }
+.badge.bg-danger  { background: #ffd6d6 !important; color: #a72c2c !important; border-color: #ffd6d6 !important; }
+.badge.bg-info    { background: #cfe2ff !important; color: #084298 !important; border-color: #cfe2ff !important; }
+
+/* Banner de compra y venta */
+.banner-compra, .banner-venta {
+    border-radius: 0.7rem;
+    font-weight: 700;
+    font-size: 1.05rem;
+    margin-bottom: 1.1rem;
+    padding: 1rem 1.2rem;
+    box-shadow: 0 2px 8px rgba(185,160,56,0.07);
+}
+.banner-compra {
+    background: linear-gradient(135deg, #e5eecf 0%, #f4f6e8 100%);
+    color: #43a047;
+    border-left: 5px solid #43a047;
+}
+.banner-venta {
+    background: linear-gradient(135deg, #f0f3ff 0%, #e3e8fa 100%);
+    color: #084298;
+    border-left: 5px solid #084298;
+}
+
+/* Mensaje de "no se encontraron operaciones" */
+.text-muted {
+    color: #a58c2e !important;
+    font-size: 1rem;
+    font-weight: 500;
+    margin-top: 1rem;
+}
+
+/* Readonly small card for fallback account display */
+.readonly-section {
+    background: #f6f9fc;
+    border-radius: 0.5rem;
+    padding: 0.45rem;
+    border: 1px solid #ececec;
+}
+.readonly-section .readonly-value {
+    color: #181d22;
+    font-weight: 600;
+    word-break: break-all;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .card, .table-responsive { padding: 1rem 0.5rem;}
+    #operationsTable { font-size: 0.92rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title">Historial de Operaciones</h5>
+            </div>
+            <div class="card-body">
+                <form id="filterForm" class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="searchOperations" placeholder="Buscar por documento, cliente o usuario">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" id="filterStartDate" placeholder="Desde">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" id="filterEndDate" placeholder="Hasta">
+                    </div>
+                    <div class="col-md-2 d-grid">
+                        <button type="button" class="btn btn-primary" id="filterBtn">Filtrar</button>
+                    </div>
+                    <div class="col-md-2 d-grid">
+                        <button type="button" class="btn btn-secondary" id="clearFilters">Limpiar</button>
+                    </div>
+                </form>
+                <button class="btn btn-success export-btn" id="downloadButton">Descargar Excel</button>
+                <div class="table-responsive">
+                    <table id="operationsTable" class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>IDOP</th>
+                                <th>N° de documento</th>
+                                <th>Cliente</th>
+                                <th>Tipo de operación</th>
+                                <th>Importe USD</th>
+                                <th>Tipo de cambio</th>
+                                <th>Contravalor S/</th>
+                                <th>Estado</th>
+                                {% if user.role in ['Master', 'Operador'] %}
+                                <th>Fecha</th>
+                                <th>Usuario</th>
+                                {% elif user.role == 'Trader' %}
+                                <th>Fecha</th>
+                                {% endif %}
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+                {% if operations|length == 0 %}
+                <div class="text-center mt-3 text-muted">No se encontraron operaciones con los criterios seleccionados.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal VER Operación -->
+<div class="modal fade" id="modalOperacion" tabindex="-1" aria-labelledby="modalOperacionLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <form id="formOperacion" enctype="multipart/form-data">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold text-primary" id="modalOperacionLabel">
+            <i class="bi bi-eye me-2"></i>Detalles de la Operación
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          
+          <!-- Sección de información básica -->
+          <div class="card mb-4">
+            <div class="card-header bg-primary text-white py-2">
+              <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Información General</h6>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-semibold text-muted small">ID Operación</label>
+                  <div class="fw-bold" id="modal-operation-id">-</div>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-semibold text-muted small">Cliente</label>
+                  <div class="fw-bold" id="modal-client-name">-</div>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-semibold text-muted small">Tipo de Operación</label>
+                  <div class="fw-bold" id="modal-operation-type">-</div>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-semibold text-muted small">Estado</label>
+                  <div id="modal-operation-status">-</div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-semibold text-muted small">Importe USD</label>
+                  <div class="fw-bold d-flex align-items-center" id="modal-amount-usd-container">
+                    <span id="modal-amount-usd">-</span>
+                  </div>
+		  <div id="modal-operation-modified-info" class="text-muted small mt-2"></div>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-semibold text-muted small">Tipo de Cambio</label>
+                  <div class="fw-bold" id="modal-exchange-rate">-</div>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-semibold text-muted small">Contravalor S/</label>
+                  <div class="fw-bold" id="modal-amount-pen">-</div>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-semibold text-muted small">Fecha</label>
+                  <div id="modal-operation-date">-</div>
+                </div>
+              </div>
+            </div>
+          </div>      
+                    
+          <!-- Banner de operación -->
+          <div id="bannerOperacion" class="mb-4"></div>
+          
+          <!-- Sección de abonos -->
+          <div class="card mb-4">
+            <div class="card-header bg-success text-white py-2 d-flex justify-content-between align-items-center">
+              <h6 class="mb-0"><i class="bi bi-cash-coin me-2"></i>Abonos</h6>
+            </div>
+            <div class="card-body">
+              <div id="alertaDiferenciaTotal" class="mb-3"></div>
+              <div id="abonosContainer"></div>
+            </div>
+          </div>
+	  <!-- Cartel de pagos -->
+          <div id="bannerPagos" class="mb-4"></div>
+          <!-- Sección de pagos -->
+          <div class="card mb-4">
+            <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+              <h6 class="mb-0"><i class="bi bi-wallet2 me-2"></i>Pagos</h6>
+            </div>
+            <div class="card-body">
+              <div id="alertaDiferenciaTotalPagos" class="mb-3"></div>
+              <div id="pagosContainer"></div>
+            </div>
+          </div>
+
+          <!-- Información del operador (cuando la operación está finalizada) -->
+          <div id="info-operador-finalizada" class="card mb-4" style="display:none;">
+            <div class="card-header bg-info text-white py-2">
+              <h6 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Comprobantes y Notas del Operador</h6>
+            </div>
+            <div class="card-body">
+              <div id="info-operador-archivos" class="mb-3"></div>
+              <div class="mb-2">
+                <label class="form-label fw-semibold">Comentario del Operador</label>
+                <textarea class="form-control" id="info-operador-comentario" rows="2" readonly style="background:#f8f9fa;"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-1"></i>Cerrar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+/* ========== VARIABLES GLOBALES DEL MODAL ========== */
+let operacionActual = null;
+let abonos = [];
+let pagos = [];
+let cuentasDestino = [];
+let cuentasCargo = [];
+const currentRole = '{{ user.role }}';
+const currentUser = '{{ user.username }}';
+
+/* Utility: normalize account strings for tolerant comparison */
+function normalizeAccountString(s) {
+    if (s === undefined || s === null) return '';
+    return String(s).trim().replace(/[\s\-\.\_]+/g, '').replace(/[^0-9a-zA-Z]/g, '').toLowerCase();
+}
+
+/* Utility: build label including location, bank, account number, account_type, currency */
+function buildAccountLabel(acc) {
+    if (!acc) return '';
+    const parts = [];
+    if (acc.location) parts.push(String(acc.location).trim());
+    if (acc.bank) parts.push(String(acc.bank).trim());
+    if (acc.account_number) parts.push(String(acc.account_number).trim());
+    let meta = [];
+    if (acc.account_type) meta.push(String(acc.account_type).trim());
+    if (acc.currency) meta.push(String(acc.currency).trim());
+    const metaStr = meta.length ? `(${meta.join(' - ')})` : '';
+    return parts.join(' - ') + (metaStr ? ' ' + metaStr : '');
+}
+
+/* ========== DATATABLE CONFIG ========== */
+function getColumnsConfig() {
+    const baseColumns = [
+        { data: 'operation_id', title: 'IDOP' },
+        { data: 'doc_number', title: 'N° de documento' },
+        { data: 'client_name', title: 'Cliente' },
+        { data: 'operation_type', title: 'Tipo de operación' },
+        { 
+            data: 'amount_usd', 
+            title: 'Importe USD',
+            render: function(data) {
+                return data ? '$ ' + parseFloat(data).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '$ 0.00';
+            }
+        },
+        { 
+            data: 'exchange_rate', 
+            title: 'Tipo de cambio',
+            render: function(data) {
+                return (data !== undefined && data !== null) ? parseFloat(data).toLocaleString('es-PE', {minimumFractionDigits: 3, maximumFractionDigits: 4}) : '0.000';
+            }
+        },
+        { 
+            data: 'amount_pen', 
+            title: 'Contravalor S/',
+            render: function(data) {
+                return data ? 'S/ ' + parseFloat(data).toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'S/ 0.00';
+            }
+        },
+        { 
+            data: 'status', 
+            title: 'Estado',
+            render: function(data) {
+                let badgeClass = 'bg-warning';
+                if (data === 'Procesado' || data === 'Completada') badgeClass = 'bg-success';
+                if (data === 'Cancelada' || data === 'Cancelado') badgeClass = 'bg-danger';
+                if (data === 'En proceso' || data === 'P-En Proceso') badgeClass = 'bg-info';
+                return `<span class="badge ${badgeClass} badge-estado">${data}</span>`;
+            }
+        }
+    ];
+
+    if (currentRole === 'Master' || currentRole === 'Operador') {
+        baseColumns.push({ data: 'created_at', title: 'Fecha' });
+        baseColumns.push({ data: 'username', title: 'Usuario', defaultContent: '' });
+    } else if (currentRole === 'Trader') {
+        baseColumns.push({ data: 'created_at', title: 'Fecha' });
+    }
+
+    baseColumns.push({
+        data: 'operation_id',
+        title: 'Acciones',
+        orderable: false,
+        render: function(data) {
+            return `<button class="btn btn-info btn-sm view-operation-historial" data-operation-id="${data}">Ver</button>`;
+        }
+    });
+
+    return baseColumns;
+}
+
+$(function() {
+    const table = $('#operationsTable').DataTable({
+        order: [[0, "desc"]],
+        language: { url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json' },
+        ajax: { url: '/api/operations_poll', dataSrc: 'operations' },
+        columns: getColumnsConfig(),
+        columnDefs: [{ targets: '_all', defaultContent: '' }]
+    });
+
+    $('#searchOperations').on('input', function() { table.search($(this).val()).draw(); });
+
+    $('#filterBtn').click(function() {
+        const startDate = $('#filterStartDate').val();
+        const endDate = $('#filterEndDate').val();
+        if (!startDate && !endDate) { alert('Por favor seleccione un rango de fechas para filtrar.'); return; }
+        $('#searchOperations').val('');
+        table.ajax.url('/api/operations_history_filtered?' + $.param({ fecha_inicio: startDate, fecha_fin: endDate })).load();
+    });
+
+    $('#clearFilters').click(function() {
+        $('#searchOperations').val(''); $('#filterStartDate').val(''); $('#filterEndDate').val('');
+        table.ajax.url('/api/operations_poll').load();
+    });
+
+    $('#downloadButton').click(function() {
+        const startDate = $('#filterStartDate').val();
+        const endDate = $('#filterEndDate').val();
+        const searchTerm = $('#searchOperations').val();
+        if (!startDate || !endDate) { alert('Para descargar el Excel, primero debe seleccionar un rango de fechas (Desde y Hasta).'); return; }
+        let url = `/download_operations_excel?fecha_inicio=${startDate}&fecha_fin=${endDate}`;
+        if (searchTerm) url += `&cliente=${encodeURIComponent(searchTerm)}`;
+        window.location.href = url;
+    });
+
+    var socket = io({transports: ['websocket', 'polling']});
+    socket.on('nueva_operacion', () => table.ajax.reload(null, false));
+    socket.on('operacion_actualizada', () => table.ajax.reload(null, false));
+    socket.on('operacion_cancelada', () => table.ajax.reload(null, false));
+
+    // Open modal VER
+    $(document).on('click', '.view-operation-historial', function() {
+        const opId = $(this).data('operation-id');
+        if (!opId) return;
+        $('#modalOperacion').modal('show');
+
+        $.getJSON(`/api/operation/${opId}/full`)
+        .done(function(data) {
+            if (!data) {
+                $('#modalOperacion .modal-body').html('<div class="alert alert-danger">No se pudieron cargar los datos de la operación.</div>');
+                return;
+            }
+            operacionActual = data;
+            populateOperationInfo(operacionActual);
+
+            // Map abonos/pagos
+            abonos = (operacionActual.abonos && operacionActual.abonos.length)
+                ? operacionActual.abonos.map(a => ({
+                    monto: a.amount,
+                    codigo: a.nro_operacion,
+                    file_url: a.comprobante ? '/uploads/' + a.comprobante : null,
+                    account_number: a.cuenta_cargo || operacionActual.source_account
+                }))
+                : [{monto:'',codigo:'',file_url:null,account_number: operacionActual.source_account}];
+
+            pagos = (operacionActual.pagos && operacionActual.pagos.length)
+                ? operacionActual.pagos.map(p => ({
+                    monto: p.amount,
+                    account_number: p.cuenta_destino || operacionActual.destination_account
+                }))
+                : [{monto:'',account_number: operacionActual.destination_account}];
+
+            // Use accounts from response
+            const allAccounts = Array.isArray(operacionActual.accounts) ? operacionActual.accounts : [];
+
+            const monedaDestino = operacionActual.operation_type === 'Compra' ? 'Soles' : 'Dólares';
+            const monedaCargo = operacionActual.operation_type === 'Compra' ? 'Dólares' : 'Soles';
+
+            function currencyMatches(aCurrency, expected) {
+                if (!aCurrency || !expected) return false;
+                const ac = String(aCurrency).trim().toLowerCase();
+                const ex = String(expected).trim().toLowerCase();
+                if (ac === ex) return true;
+                if (ac === 'pen' && ex === 'soles') return true;
+                if (ac === 'soles' && ex === 'pen') return true;
+                return ac.includes(ex) || ex.includes(ac);
+            }
+
+            cuentasDestino = allAccounts.filter(a => currencyMatches(a.currency, monedaDestino));
+            cuentasCargo = allAccounts.filter(a => currencyMatches(a.currency, monedaCargo));
+
+            renderBannerOperacion(operacionActual);
+            renderBannerPagos(operacionActual);
+            renderAbonos();
+            renderPagos();
+
+            // operator files/notes
+            const st = (operacionActual.status || '').toLowerCase();
+            const tieneArchivosOperador = Array.isArray(operacionActual.operador_file) && operacionActual.operador_file.length > 0;
+            const tieneComentarioOperador = !!(operacionActual.operador_comentarios && operacionActual.operador_comentarios.trim());
+            if ((st === 'procesado' || st === 'p-procesado' || st === 'completada') && (tieneArchivosOperador || tieneComentarioOperador)) {
+                $('#info-operador-finalizada').show();
+                let html = '';
+                if (tieneArchivosOperador) {
+                    html = operacionActual.operador_file.map(f => `<div><a href="/uploads/${encodeURIComponent(f)}" target="_blank">Ver comprobante del Operador</a></div>`).join('');
+                } else {
+                    html = '<em>Sin comprobantes del operador</em>';
+                }
+                $('#info-operador-archivos').html(html);
+                $('#info-operador-comentario').val(operacionActual.operador_comentarios || '');
+            } else {
+                $('#info-operador-finalizada').hide();
+                $('#info-operador-archivos').empty();
+                $('#info-operador-comentario').val('');
+            }
+        })
+        .fail(function(jqXHR, textStatus, errorThrown) {
+            console.error("Error al cargar operación:", textStatus, errorThrown);
+            $('#modalOperacion .modal-body').html('<div class="alert alert-danger">Error al cargar los detalles de la operación: ' + (jqXHR.responseJSON?.error || textStatus) + '</div>');
+        });
+    });
+
+    /* ---------- RENDER HELPERS: ABONOS / PAGOS (incluyen location, tipo de cuenta, moneda) ---------- */
+
+    function populateOperationInfo(data) {
+        $('#modal-operation-id').text(data.operation_id || '-');
+        $('#modal-client-name').text(data.client_name || '-');
+        $('#modal-operation-type').text(data.operation_type || '-');
+        $('#modal-amount-usd').text('$ ' + (parseFloat(data.amount_usd || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})));
+        $('#modal-exchange-rate').text((data.exchange_rate !== undefined && data.exchange_rate !== null) ? parseFloat(data.exchange_rate).toFixed(4) : '-');
+        $('#modal-amount-pen').text('S/ ' + (parseFloat(data.amount_pen || 0).toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2})));
+        $('#modal-operation-date').text(data.created_at || '-');
+
+        const status = data.status || '';
+        let statusClass = 'bg-secondary';
+        if (status === 'Completada' || status === 'Procesado') statusClass = 'bg-success';
+        else if (status === 'En proceso' || status === 'P-En Proceso') statusClass = 'bg-info';
+        else if (status === 'Cancelado' || status === 'Cancelada') statusClass = 'bg-danger';
+        else if (status === 'Pendiente') statusClass = 'bg-warning';
+        $('#modal-operation-status').html(`<span class="badge ${statusClass} badge-estado">${status}</span>`);
+
+        if (data.modificado && data.modificado == 1) {
+            const fechaMod = data.updated_at || '';
+            let modificadoStr = 'Modificado';
+            if (fechaMod) {
+                const f = new Date(fechaMod);
+                modificadoStr = 'Modificado - ' + f.toLocaleString('es-PE', {year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
+            }
+            $('#modal-operation-modified-info').text(modificadoStr);
+        } else {
+            $('#modal-operation-modified-info').text('');
+        }
+    }
+
+    function renderBannerOperacion(op) {
+        let html = '';
+        const usd = parseFloat(op.amount_usd || 0);
+        const tc = parseFloat(op.exchange_rate || 0);
+        if (op.operation_type === 'Compra' && usd) html = `<div class="banner-compra"><b>Cliente debe abonar ${usd.toLocaleString('en-US',{minimumFractionDigits:2})} dólares</b></div>`;
+        else if (op.operation_type === 'Venta' && usd && tc) html = `<div class="banner-venta"><b>Cliente debe abonar ${(usd*tc).toLocaleString('es-PE',{minimumFractionDigits:2})} soles</b></div>`;
+        else html = `<div class="banner-venta"><b>Datos de operación incompletos</b></div>`;
+        $('#bannerOperacion').html(html);
+    }
+
+    function renderBannerPagos(op) {
+        let html = '';
+        const usd = parseFloat(op.amount_usd || 0);
+        const tc = parseFloat(op.exchange_rate || 0);
+        if (op.operation_type === 'Compra' && usd && tc) html = `<div class="banner-venta"><b>CoriCash debe pagar ${(usd*tc).toLocaleString('es-PE',{minimumFractionDigits:2})} soles</b></div>`;
+        else if (op.operation_type === 'Venta' && usd) html = `<div class="banner-compra"><b>CoriCash debe pagar ${usd.toLocaleString('en-US',{minimumFractionDigits:2})} dólares</b></div>`;
+        $('#bannerPagos').html(html);
+    }
+
+    function renderAbonos() {
+        const $container = $('#abonosContainer');
+        $container.empty();
+
+        const tcRaw = operacionActual && operacionActual.exchange_rate != null ? operacionActual.exchange_rate : '';
+        const tc = (tcRaw !== '' && !isNaN(parseFloat(tcRaw))) ? parseFloat(tcRaw).toFixed(4) : (tcRaw || '');
+
+        // map of normalized cargo accounts for quick lookup
+        const cargoMap = {};
+        (cuentasCargo || []).forEach(acc => cargoMap[normalizeAccountString(acc.account_number)] = acc);
+
+        abonos.forEach((ab, idx) => {
+            if (!ab.account_number && operacionActual && operacionActual.source_account) {
+                ab.account_number = operacionActual.source_account;
+            }
+            const cuentaActualRaw = ab.account_number || '';
+            const cuentaActualNorm = normalizeAccountString(cuentaActualRaw);
+
+            // build options HTML: if current account not present in cuentasCargo, prepend it (with metadata if any)
+            let optionsHtml = '';
+            const currentMeta = cargoMap[cuentaActualNorm];
+            if (cuentaActualRaw && !currentMeta) {
+                // show bank if available from operacionActual.source_bank
+                const bankLabel = operacionActual && operacionActual.source_bank ? operacionActual.source_bank : '';
+                const displayLabel = bankLabel ? `${bankLabel} - ${cuentaActualRaw}` : cuentaActualRaw;
+                optionsHtml += `<option value="${cuentaActualRaw}" selected>${displayLabel}</option>`;
+            } else {
+                optionsHtml += `<option value="">Seleccionar cuenta de cargo...</option>`;
+            }
+            // append known accounts with full info label
+            (cuentasCargo || []).forEach(acc => {
+                const selected = normalizeAccountString(acc.account_number) === cuentaActualNorm ? 'selected' : '';
+                const label = buildAccountLabel(acc);
+                optionsHtml += `<option value="${acc.account_number}" ${selected}>${label}</option>`;
+            });
+
+            // decide whether to render select or readonly fallback
+            let cuentaHtml = '';
+            if (Array.isArray(cuentasCargo) && cuentasCargo.length > 0) {
+                cuentaHtml = `<select class="form-select abono-cuenta" data-idx="${idx}" disabled>${optionsHtml}</select>`;
+            } else if (cuentaActualRaw) {
+                const bankLabel = operacionActual && operacionActual.source_bank ? ` (${operacionActual.source_bank})` : '';
+                cuentaHtml = `<div class="readonly-section"><label class="form-label small mb-0">Cuenta de Cargo${bankLabel}</label><div class="readonly-value">${cuentaActualRaw}</div></div>`;
+            } else {
+                cuentaHtml = `<div class="text-muted">Sin cuenta de cargo registrada</div>`;
+            }
+
+            const comprobanteHtml = ab.file_url ? `<a href="${ab.file_url}" target="_blank" rel="noopener noreferrer">Ver comprobante</a>` : `<span class="text-muted">Sin comprobante</span>`;
+
+            const $row = $(`
+                <div class="row abono-row align-items-center mb-2" data-index="${idx}" style="flex-wrap:nowrap;">
+                    <div class="col-2" style="min-width:130px;max-width:140px;">
+                        <label class="d-block mb-1">Monto</label>
+                        <input type="number" class="form-control" value="${ab.monto ?? ''}" readonly>
+                    </div>
+                    <div class="col-2" style="min-width:90px;max-width:110px;">
+                        <label class="d-block mb-1">Tipo de cambio</label>
+                        <input type="text" class="form-control" value="${tc}" readonly>
+                    </div>
+                    <div class="col-2" style="min-width:160px;max-width:130px;">
+                        <label class="d-block mb-1">Código de operación</label>
+                        <input type="text" class="form-control" value="${ab.codigo ?? ''}" readonly>
+                    </div>
+                    <div class="col-2" style="min-width:240px;max-width:240px;">
+                        <label class="d-block mb-1">Comprobante</label>
+                        ${comprobanteHtml}
+                    </div>
+                    <div class="col-2" style="min-width:260px;max-width:140px;">
+                        <label class="d-block mb-1">Cuenta de Cargo</label>
+                        ${cuentaHtml}
+                    </div>
+                </div>
+            `);
+            $container.append($row);
+        });
+    }
+
+    function renderPagos() {
+        const $container = $('#pagosContainer');
+        $container.empty();
+
+        const destMap = {};
+        (cuentasDestino || []).forEach(acc => destMap[normalizeAccountString(acc.account_number)] = acc);
+
+        pagos.forEach((pg, idx) => {
+            if (!pg.account_number && operacionActual && operacionActual.destination_account) {
+                pg.account_number = operacionActual.destination_account;
+            }
+            const cuentaActualRaw = pg.account_number || '';
+            const cuentaActualNorm = normalizeAccountString(cuentaActualRaw);
+            let optionsHtml = '';
+            const currentMeta = destMap[cuentaActualNorm];
+            if (cuentaActualRaw && !currentMeta) {
+                const bankLabel = operacionActual && operacionActual.dest_bank ? operacionActual.dest_bank : '';
+                const displayLabel = bankLabel ? `${bankLabel} - ${cuentaActualRaw}` : cuentaActualRaw;
+                optionsHtml += `<option value="${cuentaActualRaw}" selected>${displayLabel}</option>`;
+            } else {
+                optionsHtml += `<option value="">Seleccionar cuenta de destino...</option>`;
+            }
+            (cuentasDestino || []).forEach(acc => {
+                const selected = normalizeAccountString(acc.account_number) === cuentaActualNorm ? 'selected' : '';
+                const label = buildAccountLabel(acc);
+                optionsHtml += `<option value="${acc.account_number}" ${selected}>${label}</option>`;
+            });
+
+            let cuentaHtml = '';
+            if (Array.isArray(cuentasDestino) && cuentasDestino.length > 0) {
+                cuentaHtml = `<select class="form-select pago-cuenta" data-idx="${idx}" disabled>${optionsHtml}</select>`;
+            } else if (cuentaActualRaw) {
+                const bankLabel = operacionActual && operacionActual.dest_bank ? ` (${operacionActual.dest_bank})` : '';
+                cuentaHtml = `<div class="readonly-section"><label class="form-label small mb-0">Cuenta de destino${bankLabel}</label><div class="readonly-value">${cuentaActualRaw}</div></div>`;
+            } else {
+                cuentaHtml = `<div class="text-muted">Sin cuenta de destino registrada</div>`;
+            }
+
+            const $row = $(`
+                <div class="row pago-row align-items-center mb-2" data-index="${idx}" style="flex-wrap:nowrap;">
+                    <div class="col-3" style="min-width:150px;max-width:160px;">
+                        <label class="d-block mb-1">Monto</label>
+                        <input type="number" class="form-control" value="${pg.monto ?? ''}" readonly>
+                    </div>
+                    <div class="col-5" style="min-width:260px;max-width:320px;">
+                        <label class="d-block mb-1">Cuenta de destino</label>
+                        ${cuentaHtml}
+                    </div>
+                </div>
+            `);
+            $container.append($row);
+        });
+    }
+
+    // limpiamos estado al cerrar modal
+    $('#modalOperacion').on('hidden.bs.modal', function() {
+        operacionActual = null;
+        abonos = [];
+        pagos = [];
+        cuentasDestino = [];
+        cuentasCargo = [];
+        $('#abonosContainer').empty();
+        $('#pagosContainer').empty();
+        $('#info-operador-archivos').empty();
+        $('#info-operador-comentario').val('');
+    });
+});
+</script>
+{% endblock %}

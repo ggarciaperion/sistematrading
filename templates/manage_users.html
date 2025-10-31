@@ -1,0 +1,652 @@
+{% extends "base.html" %}
+{% block title %}Administrar Usuarios - Sistema de Trading de Dólares{% endblock %}
+{% block head %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+/* QoriCash Visual Style for Administrar Usuarios */
+
+body, .main-content {
+    background: #fff !important;
+    color: #181d22 !important;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+.card {
+    background: #f9f9fb;
+    border-radius: 1.08rem;
+    box-shadow: 0 2px 8px rgba(185,160,56,0.07);
+    border: 2px solid #ececec;
+}
+.card-header {
+    background: #f3f3f3;
+    color: #b9a038 !important;
+    font-weight: 700;
+    font-size: 1.15rem;
+    border-radius: 1.08rem 1.08rem 0 0;
+    border-bottom: 2px solid #ececec;
+}
+
+/* Botones */
+.btn, .btn-primary, .btn-danger, .btn-warning, .btn-info, .btn-secondary {
+    border-radius: 0.5rem !important;
+    font-weight: 600;
+    box-shadow: 0 1px 4px rgba(185,160,56,0.09);
+    border: none;
+}
+.btn-primary { background: #b9a038 !important; color: #fff !important; }
+.btn-primary:hover { background: #a58c2e !important; }
+.btn-danger { background: #ffd6d6 !important; color: #a72c2c !important; }
+.btn-warning { background: #ffe8b3 !important; color: #8d6700 !important; }
+.btn-info { background: #cfe2ff !important; color: #084298 !important; }
+.btn-secondary { background: #f3f3f3 !important; color: #181d22 !important; }
+
+/* Inputs y selects */
+input.form-control, select.form-select, textarea.form-control {
+    border-radius: 0.5rem;
+    background: #fafbfc;
+    color: #181d22;
+    border: 1px solid #ececec;
+}
+input[readonly], select[readonly], textarea[readonly] {
+    background: #f3f3f3;
+    color: #888;
+}
+input.form-control:focus, select.form-select:focus, textarea.form-control:focus {
+    border-color: #b9a038;
+    box-shadow: 0 0 0 2px #ffe8b344;
+}
+
+/* Tabla de usuarios */
+.table {
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 2px 12px rgba(185,160,56,0.09);
+}
+.table th {
+    background: #f3f3f3;
+    color: #b9a038;
+    font-weight: 700;
+    font-size: 1rem;
+    border-top: none !important;
+    border-bottom: 1.3px solid #e7e7e7 !important;
+}
+.table td {
+    font-size: 0.98rem;
+    border-bottom: 1.3px solid #ececec !important;
+    background: #fff;
+}
+.table tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+/* Badges de estado */
+.badge.bg-success, .badge.bg-secondary {
+    font-size: 0.85rem;
+    padding: 0.36em 0.98em;
+    border-radius: 1em;
+    font-weight: 600;
+    border: 1px solid #c5e6bb;
+    margin-left: 0.3em;
+}
+.badge.bg-success { background: #43a047 !important; color: #fff !important; border-color: #d9f5d0 !important; }
+.badge.bg-secondary { background: #ffe8b3 !important; color: #8d6700 !important; border-color: #f3e2ae !important; }
+
+.alert {
+    border-radius: 0.7rem;
+    font-weight: 600;
+    font-size: 1.02rem;
+}
+
+/* Modales */
+.modal-content {
+    border-radius: 1.1rem;
+    box-shadow: 0 1px 8px rgba(185,160,56,0.10);
+    border: 2px solid #ececec;
+    background: #fff;
+}
+.modal-header, .modal-footer {
+    background: #f3f3f3;
+    border-color: #ececec;
+    border-radius: 1.1rem 1.1rem 0 0;
+}
+.modal-title {
+    color: #b9a038;
+    font-weight: 600;
+    font-size: 1.2rem;
+    letter-spacing: .5px;
+}
+
+/* Panel de solicitudes */
+.requests-panel {
+    margin-top: 1rem;
+}
+.request-badge {
+    font-weight:700;
+}
+
+/* Toast area */
+#toastArea {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 2000;
+    max-width: 360px;
+}
+
+/* small screens */
+@media (max-width: 900px) {
+    .card, .table-responsive { padding: 1rem 0.5rem;}
+    .table { font-size: 0.92rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>Administrar Usuarios</div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-secondary btn-sm" id="btnOpenReassignClients">
+                        <i class="fa fa-exchange-alt"></i> Reasignar Clientes
+                    </button>
+
+                    <button class="btn btn-danger btn-sm" id="btnOpenDeleteUser">
+                        <i class="fa fa-user-minus"></i> Eliminar Usuario
+                    </button>
+                    <button class="btn btn-primary btn-sm" id="btnOpenCreateUser">
+                        <i class="fa fa-user-plus"></i> Crear Usuario
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-body">
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-warning">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered" id="usersTable">
+                        <thead>
+                            <tr>
+                                <th style="width:60px">ID</th>
+                                <th>Nombres</th>
+                                <th>Contraseña</th>
+                                <th>Rol</th>
+                                <th>N° de Doc.</th>
+                                <th>Correo</th>
+                                <th>Estado</th>
+                                <th>Último login</th>
+                                <th>Último logout</th>
+                                <th style="width:110px">Resetear</th>
+                                <th style="width:80px">Editar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            {% for u in users %}
+                            <tr data-user-id="{{ u.id }}">
+                                <td>{{ u.id }}</td>
+                                <td>{{ u.username }}</td>
+                                <td class="cell-password">
+                                    {% if u.last_plain_password %}
+                                        <span class="text-dark" title="Última contraseña establecida">{{ u.last_plain_password }}</span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="cell-role">{{ u.role }}</td>
+                                <td>{{ u.dni }}</td>
+                                <td>{{ u.email }}</td>
+                                <td class="cell-status">
+                                    <span class="badge bg-{{ 'success' if u.status == 'Activo' else 'secondary' }}">{{ u.status }}</span>
+                                </td>
+                                <td>{{ u.last_login or '' }}</td>
+                                <td>{{ u.last_logout or '' }}</td>
+                                <td>
+                                    <button class="btn btn-warning btn-sm reset-pass-btn" data-user-id="{{ u.id }}"><i class="fa fa-undo"></i> Resetear</button>
+                                </td>
+                                <td>
+                                    <button class="btn btn-info btn-sm edit-user-btn" data-user-id="{{ u.id }}"><i class="fa fa-pencil-alt"></i></button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Panel de solicitudes de reseteo -->
+                <div class="requests-panel card p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0">Solicitudes de restablecimiento</h5>
+                        <div>
+                            <button id="btnRefreshRequests" class="btn btn-secondary btn-sm"><i class="fa fa-sync"></i> Refrescar</button>
+                            <span class="badge bg-secondary request-badge ms-2" id="requestsCount">0</span>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered" id="resetRequestsTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Identificador</th>
+                                    <th>Usuario (DB)</th>
+                                    <th>Solicitado</th>
+                                    <th>Estado</th>
+                                    <th>Info</th>
+                                    <th style="width:160px">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resetRequestsBody">
+                                <!-- dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="small text-muted">Cuando un usuario solicita que un Master restablezca su contraseña, aparece aquí y los Masters conectados reciben una notificación en tiempo real.</div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Usuario -->
+<div class="modal fade" id="modalEditUser" tabindex="-1" aria-labelledby="modalEditUserLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="editUserForm">
+        <input type="hidden" name="csrf_token" id="edit_csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEditUserLabel">Editar Usuario</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="edit_user_id" name="id">
+          <div class="mb-3">
+            <label for="edit_nombres" class="form-label">Nombres</label>
+            <input type="text" class="form-control" id="edit_nombres" name="nombres" required>
+          </div>
+          <div class="mb-3">
+            <label for="edit_dni" class="form-label">N° de Doc.</label>
+            <input type="text" class="form-control" id="edit_dni" name="dni" required>
+          </div>
+          <div class="mb-3">
+            <label for="edit_email" class="form-label">Correo</label>
+            <input type="email" class="form-control" id="edit_email" name="email" required>
+          </div>
+          <div class="mb-3">
+            <label for="edit_role" class="form-label">Rol</label>
+            <select class="form-select" id="edit_role" name="role" required>
+              <option value="Trader">Trader</option>
+              <option value="Operador">Operador</option>
+              <option value="Master">Master</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="edit_status" class="form-label">Estado</label>
+            <select class="form-select" id="edit_status" name="status" required>
+              <option value="Activo">Activo</option>
+              <option value="Pendiente">Pendiente</option>
+              <option value="Inactivo">Inactivo</option>
+            </select>
+          </div>
+          <div id="editUserAlert" class="d-none alert alert-danger"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Procesar Solicitud -->
+<div class="modal fade" id="modalProcessRequest" tabindex="-1" aria-labelledby="modalProcessRequestLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="processRequestForm">
+        <input type="hidden" id="process_request_id">
+        <input type="hidden" id="process_csrf" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalProcessRequestLabel">Procesar solicitud de reseteo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+            <div id="processRequestAlert" class="alert d-none"></div>
+            <p><strong>Identificador:</strong> <span id="proc_identifier"></span></p>
+            <p><strong>Info:</strong> <span id="proc_info"></span></p>
+            <div class="mb-3">
+                <label class="form-label">Acción</label>
+                <select id="proc_action" class="form-select">
+                    <option value="approve">Aprobar y resetear contraseña</option>
+                    <option value="reject">Rechazar</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Notas (opcionales)</label>
+                <textarea id="proc_notes" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="form-text small text-muted">Aprobar generará que el Master ejecute el restablecimiento (se recomienda usar una contraseña temporal y comunicársela de forma segura).</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Enviar acción</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Toast area -->
+<div id="toastArea"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+$(document).ready(function(){
+
+    // ---- Helpers ----
+    function showToast(message, type='info', timeout=5000) {
+        const id = 't'+Date.now();
+        const cls = type === 'info' ? 'bg-info text-white' : (type === 'success' ? 'bg-success text-white' : 'bg-danger text-white');
+        const $t = $(`
+            <div id="${id}" class="toast ${cls} p-3 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+                <div>${message}</div>
+            </div>
+        `);
+        $('#toastArea').append($t);
+        setTimeout(()=>{$t.fadeOut(400, ()=>$t.remove());}, timeout);
+    }
+
+    function getCsrfToken() {
+        return $.get('/get_csrf_token').then(d => d.csrf_token).catch(()=>null);
+    }
+
+    function statusToSpanish(status) {
+        if (!status) return '';
+        const s = String(status).toUpperCase();
+        if (s === 'PENDING') return 'Pendiente';
+        if (s === 'DONE') return 'Hecho';
+        if (s === 'REJECTED') return 'Rechazado';
+        // soportar estados almacenados en español en DB
+        if (s === 'PENDIENTE' || s === 'HECHO' || s === 'RECHAZADO') return status;
+        return status;
+    }
+
+    function badgeClassForStatus(status) {
+        const s = (status || '').toUpperCase();
+        if (s === 'PENDING') return 'warning';
+        if (s === 'DONE') return 'success';
+        if (s === 'REJECTED') return 'secondary';
+        if (s === 'PENDIENTE') return 'warning';
+        if (s === 'HECHO') return 'success';
+        if (s === 'RECHAZADO') return 'secondary';
+        return 'secondary';
+    }
+
+    // Fill edit modal when clicking edit
+    $(document).on('click', '.edit-user-btn', function(){
+        var userId = $(this).data('user-id');
+        $.get('/get_csrf_token').done(function(data){
+            $('#edit_csrf_token').val(data.csrf_token);
+            $.getJSON('/get_user/' + userId, function(data){
+                $('#edit_user_id').val(data.id);
+                $('#edit_nombres').val(data.username);
+                $('#edit_dni').val(data.dni);
+                $('#edit_email').val(data.email);
+                $('#edit_role').val(data.role);
+                $('#edit_status').val(data.status);
+                $('#editUserAlert').addClass('d-none').text('');
+                $('#modalEditUser').modal('show');
+            }).fail(function(){ alert('No se pudo obtener datos del usuario.'); });
+        }).fail(function(){ alert('No se pudo obtener token CSRF.'); });
+    });
+
+    // Guardar edición (AJAX) con CSRF header
+    $('#editUserForm').submit(function(e){
+        e.preventDefault();
+        var formData = {
+            id: $('#edit_user_id').val(),
+            nombres: $('#edit_nombres').val(),
+            dni: $('#edit_dni').val(),
+            email: $('#edit_email').val(),
+            role: $('#edit_role').val(),
+            status: $('#edit_status').val()
+        };
+        var csrfToken = $('#edit_csrf_token').val() || '';
+        $.ajax({
+            url: '/edit_user',
+            method: 'POST',
+            data: formData,
+            beforeSend: function(xhr){ if (csrfToken) xhr.setRequestHeader('X-CSRFToken', csrfToken); },
+            success: function(resp){
+                showToast(resp.msg || 'Usuario actualizado', 'success');
+                setTimeout(()=>location.reload(), 700);
+            },
+            error: function(xhr){
+                let msg = "Error al guardar cambios";
+                try { if (xhr.responseJSON && xhr.responseJSON.msg) msg = xhr.responseJSON.msg; else if (xhr.responseText) msg = xhr.responseText; } catch(e){}
+                $('#editUserAlert').removeClass('d-none').text(msg);
+            }
+        });
+    });
+
+    // ---- Resetear contraseña (admin action) ----
+    $(document).on('click', '.reset-pass-btn', function(){
+        var userId = $(this).data('user-id');
+        if(!confirm('¿Seguro que deseas resetear la contraseña a "experion123"?')) return;
+        getCsrfToken().then(function(token){
+            $.ajax({
+                url: '/reset_password_user',
+                method: 'POST',
+                data: { user_id: userId },
+                beforeSend: function(xhr){ if (token) xhr.setRequestHeader('X-CSRFToken', token); },
+                success: function(resp){
+                    showToast(resp.msg || 'Contraseña reseteada', 'success');
+                    // no recargar la página: el servidor emitirá user_updated y actualizaremos la fila en tiempo real
+                },
+                error: function(xhr){
+                    let msg = 'Ocurrió un error al resetear la contraseña';
+                    try { if (xhr.responseJSON && xhr.responseJSON.msg) msg = xhr.responseJSON.msg; } catch(e){}
+                    showToast(msg, 'danger');
+                }
+            });
+        });
+    });
+
+    // ---- Requests: cargar listado ----
+    function buildRequestRow(r) {
+        const state = r.status || 'PENDING';
+        const stateText = statusToSpanish(state);
+        const badge = badgeClassForStatus(state);
+        const userDisplay = r.user_id ? r.user_id : '-';
+        const info = r.notes || r.info || '';
+        // NOTA: eliminamos el botón "Refrescar" por fila (solicitado)
+        return `<tr data-req-id="${r.id}">
+            <td>${r.id}</td>
+            <td>${r.identifier || ''}</td>
+            <td>${userDisplay}</td>
+            <td>${r.requested_at || ''}</td>
+            <td><span class="badge bg-${badge}">${stateText}</span></td>
+            <td>${info}</td>
+            <td>
+                <button class="btn btn-sm btn-primary btn-process-request" data-req='${JSON.stringify(r).replace(/'/g,"&#39;")}'>Procesar</button>
+            </td>
+        </tr>`;
+    }
+
+    function loadResetRequests() {
+        $.getJSON('/api/password_reset_requests', function(resp){
+            const rows = resp.requests || [];
+            const $body = $('#resetRequestsBody');
+            $body.empty();
+            $('#requestsCount').text(rows.length);
+            if (!rows.length) {
+                $body.append('<tr><td colspan="7" class="text-center">No hay solicitudes pendientes.</td></tr>');
+                return;
+            }
+            rows.forEach(r=>{
+                $body.append(buildRequestRow(r));
+            });
+        }).fail(function(){
+            showToast('No se pudo cargar solicitudes', 'danger');
+        });
+    }
+
+    $('#btnRefreshRequests').click(loadResetRequests);
+    loadResetRequests(); // carga inicial
+
+    // ---- Abrir modal para procesar solicitud ----
+    $(document).on('click', '.btn-process-request', function(){
+        const r = $(this).data('req');
+        // cuando data-req es string de JSON, jQuery lo deja string; intentar parsear en caso
+        let reqObj = r;
+        if (typeof r === 'string') {
+            try { reqObj = JSON.parse(r); } catch(e){ reqObj = { id: r }; }
+        }
+        $('#process_request_id').val(reqObj.id);
+        $('#proc_identifier').text(reqObj.identifier || '');
+        $('#proc_info').text(reqObj.info || reqObj.notes || '');
+        $('#proc_notes').val('');
+        $('#proc_action').val('approve');
+        $('#processRequestAlert').addClass('d-none').text('');
+        $('#modalProcessRequest').modal('show');
+    });
+
+    // ---- Procesar solicitud (approve/reject) ----
+    $('#processRequestForm').submit(function(e){
+        e.preventDefault();
+        const reqId = $('#process_request_id').val();
+        const action = $('#proc_action').val();
+        const notes = $('#proc_notes').val();
+        getCsrfToken().then(function(token){
+            $.ajax({
+                url: '/admin/process_reset_request',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ request_id: parseInt(reqId,10), action: action, notes: notes }),
+                beforeSend: function(xhr){ if (token) xhr.setRequestHeader('X-CSRFToken', token); },
+                success: function(resp){
+                    showToast(resp.msg || 'Acción aplicada', 'success');
+                    // Si el backend devolvió una temporary_password, mostrarla al Master
+                    if (resp.temporary_password) {
+                        // Mostrar en toast (puedes adaptar a modal si prefieres)
+                        showToast('Contraseña temporal: ' + resp.temporary_password, 'info', 15000);
+                    }
+                    $('#modalProcessRequest').modal('hide');
+                    loadResetRequests();
+                },
+                error: function(xhr){
+                    let msg = 'Error procesando solicitud';
+                    try { if (xhr.responseJSON && xhr.responseJSON.msg) msg = xhr.responseJSON.msg; } catch(e){}
+                    $('#processRequestAlert').removeClass('d-none').addClass('alert-danger').text(msg);
+                }
+            });
+        });
+    });
+
+    // ---- Socket.IO: notificaciones en tiempo real ----
+    try {
+        var socket = io();
+        socket.on('connect', function(){ console.log('socket conectado'); });
+
+        socket.on('password_reset_request', function(payload){
+            // payload: { request_id, user_id, identifier, requested_at, info }
+            console.log('password_reset_request', payload);
+            showToast('Nueva solicitud: ' + (payload.identifier || ''), 'info', 7000);
+
+            // Añadir fila si no existe; usar buildRequestRow (normaliza estado a Pendiente)
+            const existing = $(`#resetRequestsBody tr[data-req-id="${payload.request_id}"]`);
+            if (existing.length === 0) {
+                // construir objeto compatible con buildRequestRow
+                const r = {
+                    id: payload.request_id,
+                    identifier: payload.identifier,
+                    user_id: payload.user_id,
+                    requested_at: payload.requested_at,
+                    status: 'PENDING',
+                    info: payload.info
+                };
+                $('#resetRequestsBody').prepend(buildRequestRow(r));
+                const current = parseInt($('#requestsCount').text()||'0',10) + 1;
+                $('#requestsCount').text(current);
+            } else {
+                loadResetRequests();
+            }
+        });
+
+        socket.on('password_reset_processed', function(payload){
+            // payload: { request_id, user_id, identifier, status, processed_by, processed_at, notes }
+            console.log('password_reset_processed', payload);
+            // Actualizar la fila correspondiente en la tabla de solicitudes
+            const $tr = $(`#resetRequestsBody tr[data-req-id="${payload.request_id}"]`);
+            if ($tr.length) {
+                // Actualizar estado y info/notes
+                const estadoEsp = statusToSpanish(payload.status);
+                const badge = badgeClassForStatus(payload.status);
+                $tr.find('td').eq(4).html(`<span class="badge bg-${badge}">${estadoEsp}</span>`);
+                // actualizar info (col 5)
+                const infoText = payload.notes || payload.info || '';
+                $tr.find('td').eq(5).text(infoText);
+            } else {
+                // si no existe fila, recargar listado
+                loadResetRequests();
+            }
+        });
+
+        // Evento para actualizar la fila del usuario en la tabla "Administrar Usuarios"
+        socket.on('user_updated', function(payload){
+            // payload: { user_id, last_plain_password, status, failed_attempts, username, email, role }
+            console.log('user_updated', payload);
+            var uid = payload.user_id || payload.id;
+            if (!uid) return;
+            const $tr = $(`#usersTableBody tr[data-user-id="${uid}"]`);
+            if ($tr.length) {
+                // Actualizar columna Contraseña (tercera columna, index 2)
+                const pwd = payload.last_plain_password || payload.last_plain || '';
+                if (pwd) {
+                    $tr.find('td').eq(2).html(`<span class="text-dark" title="Última contraseña establecida">${pwd}</span>`);
+                } else {
+                    $tr.find('td').eq(2).html(`<span class="text-muted">—</span>`);
+                }
+                // Actualizar estado badge (columna Estado index 6)
+                const state = payload.status || '';
+                let badgeCls = (state === 'Activo' || state.toUpperCase() === 'DONE' || state.toUpperCase() === 'HECHO') ? 'success' : 'secondary';
+                // si vienen en inglés mapear
+                let stateText = stateToUse(state);
+                $tr.find('td.cell-status').html(`<span class="badge bg-${badgeCls}">${stateText}</span>`);
+            } else {
+                // si no existe la fila (por ejemplo nueva), podríamos recargar la página o la lista.
+                // optar por recargar la lista de usuarios si no se encontró (menos intrusivo: recargar)
+                // aquí no hacemos reload automático para no romper la sesión del Master; el Master puede refrescar manualmente.
+            }
+        });
+
+        function stateToUse(s) {
+            if (!s) return '';
+            // aceptar tanto español como inglés
+            const up = String(s).toUpperCase();
+            if (up === 'PENDING' || up === 'PENDIENTE') return 'Pendiente';
+            if (up === 'DONE' || up === 'HECHO') return 'Activo'; // para users usamos "Activo" si password cambió y server puso status Activo
+            if (up === 'REJECTED' || up === 'RECHAZADO') return 'Rechazado';
+            // si status real de user es 'Activo' o 'Inactivo' devolvemos tal cual
+            if (s === 'Activo' || s === 'Inactivo') return s;
+            return s;
+        }
+
+    } catch (e) {
+        console.warn('Socket.IO no disponible:', e);
+    }
+
+});
+</script>
+{% endblock %}

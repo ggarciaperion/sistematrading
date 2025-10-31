@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operaciones en Proceso - Sistema de Trading</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <style>
+        .badge-warning { background: #ff9800 !important; color: #fff !important; }
+        .badge-info { background: #17a2b8 !important; color: #fff !important; }
+        .badge-success { background: #28a745 !important; color: #fff !important; }
+        .badge-danger { background: #dc3545 !important; color: #fff !important; }
+        .badge-secondary { background: #6c757d !important; color: #fff !important; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-3">
+        <div class="container">
+            <a class="navbar-brand" href="#">Sistema de Trading</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">Hola, {{ user.username }} ({{ user.role }})</span>
+                <a class="btn btn-outline-light btn-sm" href="{{ url_for('logout') }}">Cerrar Sesión</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <h4 class="mb-3">Operaciones en Proceso</h4>
+        <div class="table-responsive">
+            <table id="tablaOperaciones" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID OP</th>
+                        <th>Cliente</th>
+                        <th>Importe USD</th>
+                        <th>Tipo</th>
+                        <th>Cuenta de cargo</th>
+                        <th>Cuenta de destino</th>
+                        <th>Comprobante</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for op in operaciones %}
+                    <tr id="op-row-{{ op[1] }}">
+                        <td>{{ op[1] }}</td>
+                        <td>{{ op[15] }}</td>
+                        <td>$ {{ "{:,.2f}".format(op[4]) }}</td>
+                        <td>{{ op[3] }}</td>
+                        <td>{{ op[7] }}</td>
+                        <td>{{ op[8] }}</td>
+                        <td>
+                            {% if op[10] %}
+                            <a href="/uploads/{{ op[10] }}" target="_blank">Ver archivo</a>
+                            {% else %}
+                            <em>No subido</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-{% if op[9] == 'Completada' %}success{% elif op[9] == 'En proceso' or op[9] == 'P-En Proceso' %}info{% elif op[9] == 'Cancelado' %}danger{% elif op[9] == 'Pendiente' %}secondary{% else %}warning{% endif %}">{{ op[9] }}</span>
+                        </td>
+                        <td>
+                            {% if op[9] == 'En proceso' %}
+                            <button class="btn btn-warning btn-sm validar-operacion" data-opid="{{ op[1] }}">Validar</button>
+                            {% elif op[9] == 'Procesado' %}
+                            <span class="badge bg-success">Procesado</span>
+                            {% elif op[9] == 'Pendiente' %}
+                            <span class="badge bg-secondary">Pendiente</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+    $(document).ready(function(){
+
+        // Handler para validar operación (tu lógica existente)
+        $(document).on('click', '.validar-operacion', function(){
+            var opid = $(this).data('opid');
+            // abrir modal / validar...
+        });
+
+        // Renderiza todo el tbody en tiempo real con TODAS las operaciones
+        function renderOperacionesTabla(operations) {
+            let $tbody = $('#tablaOperaciones tbody');
+            $tbody.empty();
+            operations.forEach(function(op) {
+                let acciones = '';
+                if (op.status === 'En proceso') {
+                    acciones = `<button class="btn btn-warning btn-sm validar-operacion" data-opid="${op.operation_id}">Validar</button>`;
+                } else if (op.status === 'Procesado') {
+                    acciones = `<span class="badge bg-success">Procesado</span>`;
+                } else if (op.status === 'Pendiente') {
+                    acciones = `<span class="badge bg-secondary">Pendiente</span>`;
+                }
+                let html = `<tr id="op-row-${op.operation_id}">
+                    <td>${op.operation_id}</td>
+                    <td>${op.client_name}</td>
+                    <td>$ ${parseFloat(op.amount_usd).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+                    <td>${op.operation_type}</td>
+                    <td>${op.source_account || ''}</td>
+                    <td>${op.destination_account || ''}</td>
+                    <td>${op.payment_proof ? `<a href="/uploads/${op.payment_proof}" target="_blank">Ver archivo</a>` : '<em>No subido</em>'}</td>
+                    <td><span class="badge ${
+                        op.status === 'Completada' ? 'bg-success' :
+                        (op.status === 'En proceso' || op.status === 'P-En Proceso') ? 'bg-info' :
+                        op.status === 'Cancelado' ? 'bg-danger' :
+                        op.status === 'Pendiente' ? 'bg-secondary' : 'bg-warning'
+                    }">${op.status}</span></td>
+                    <td>${acciones}</td>
+                </tr>`;
+                $tbody.append(html);
+            });
+        }
+
+        function actualizarTablaTiempoReal() {
+            $.getJSON('/api/operations_poll', function(data) {
+                if (data.operations) {
+                    renderOperacionesTabla(data.operations);
+                }
+            });
+        }
+
+        // Polling cada 3s
+        setInterval(actualizarTablaTiempoReal, 3000);
+
+        // Socket.IO: actualización inmediata en tiempo real
+var socket = io({transports: ['websocket', 'polling']});
+socket.on('connect', function() {
+    console.log("Socket conectado:", socket.id);
+});
+
+// Escuchar TODOS los eventos relevantes de operaciones
+socket.on('nueva_operacion', function(data) {
+    console.log("Nueva operación recibida:", data);
+    actualizarTablaTiempoReal();
+});
+
+socket.on('operacion_actualizada', function(data) {
+    console.log("Operación actualizada recibida:", data);
+    actualizarTablaTiempoReal();
+});
+
+socket.on('operacion_cancelada', function(data) {
+    console.log("Operación cancelada recibida:", data);
+    actualizarTablaTiempoReal();
+});
+        // Primera carga
+        actualizarTablaTiempoReal();
+    });
+    </script>
+</body>
+</html>
