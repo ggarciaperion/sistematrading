@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, make_response, session, send_from_directory, current_app
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import sqlite3
+import time
 import os
 from datetime import datetime
 import pytz
@@ -337,6 +338,20 @@ def init_db():
             "operador_comentarios TEXT, "
             "FOREIGN KEY (client_id) REFERENCES clients (id))"
         )
+
+        # Asegurar tabla de secuencia para generar operation_id de forma atómica
+        try:
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS operation_seq (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    last_num INTEGER NOT NULL
+                )
+            """)
+            # Insertar fila inicial si no existe (arranca en 1000, la próxima será 1001)
+            c.execute("INSERT OR IGNORE INTO operation_seq (id, last_num) VALUES (1, 1000)")
+            print("Migración: tabla 'operation_seq' asegurada")
+        except Exception as e:
+            print(f"Warning: no se pudo crear operation_seq: {e}")
 
         # 14) Tablas auxiliares para abonos/pagos y logs
         c.execute(
@@ -695,7 +710,57 @@ def load_user(user_id):
         return User(id=user_data[0], username=user_data[1], password=user_data[2], role=user_data[3])
     return None
 
-def generar_idop(conn):
+def generar_idop(conn, retries=5):
+    """
+    Genera un nuevo ID de operación tipo EXP-XXXX de forma segura contra
+    condiciones de carrera usando una tabla operation_seq y BEGIN IMMEDIATE en SQLite.
+    Si falla (p. ej. tabla no existe o se agota reintentos) cae en el método antiguo.
+    """
+    # Intento atómico usando operation_seq
+    try:
+        for attempt in range(retries):
+            try:
+                # Iniciar transacción inmediata para bloquear escritura y asegurar atomicidad
+                conn.execute('BEGIN IMMEDIATE')
+                c = conn.cursor()
+                c.execute("SELECT last_num FROM operation_seq WHERE id = 1")
+                row = c.fetchone()
+                if row and row[0] is not None:
+                    last_num = int(row[0])
+                else:
+                    last_num = 1000
+                    c.execute("INSERT OR REPLACE INTO operation_seq (id, last_num) VALUES (1, ?)", (last_num,))
+                new_num = last_num + 1
+                c.execute("UPDATE operation_seq SET last_num = ? WHERE id = 1", (new_num,))
+                conn.commit()
+                return f"EXP-{new_num:04d}"
+            except sqlite3.OperationalError:
+                # DB locked o similar; deshacer e intentar de nuevo con backoff
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+                # Exponential backoff
+                time.sleep(0.05 * (2 ** attempt))
+                if attempt == retries - 1:
+                    # Last attempt failed, log and fall through to fallback
+                    print(f"Warning: operation_seq retry exhausted after {retries} attempts, using fallback")
+                continue
+            except Exception:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+                raise
+    except Exception as e:
+        # Si algo no funcionó con operation_seq, continuamos con fallback abajo
+        print(f"Warning: operation_seq atomic generation failed ({e}), using fallback")
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+
+    # FALLBACK: comportamiento antiguo (leer última operación y sumar 1)
     c = conn.cursor()
     c.execute("SELECT operation_id FROM operations WHERE operation_id LIKE 'EXP-%' ORDER BY LENGTH(operation_id) DESC, operation_id DESC LIMIT 1")
     last = c.fetchone()
@@ -2534,18 +2599,8 @@ def create_operation():
             conn.close()
             return jsonify({'success': False, 'error': 'Importe/T.C. inválido'})
 
-        # Lógica para generar operation_id tipo EXP-XXXX
-        c.execute("SELECT operation_id FROM operations WHERE operation_id LIKE 'EXP-%' ORDER BY LENGTH(operation_id) DESC, operation_id DESC LIMIT 1")
-        last = c.fetchone()
-        if last and last[0].startswith("EXP-"):
-            try:
-                last_num = int(last[0].split('-')[1])
-            except Exception:
-                last_num = 1000
-            new_num = last_num + 1
-        else:
-            new_num = 1001
-        operation_id = f"EXP-{new_num:04d}"
+        # Generar operation_id usando generar_idop para evitar condiciones de carrera
+        operation_id = generar_idop(conn)
 
         fecha_lima = now_peru().strftime('%Y-%m-%d %H:%M:%S')
         c.execute('''
