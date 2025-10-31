@@ -729,18 +729,18 @@ def generar_idop(conn, retries=5):
                     last_num = int(row[0])
                 else:
                     last_num = 1000
-                    c.execute("INSERT OR REPLACE INTO operation_seq (id, last_num) VALUES (1, ?)", (last_num,))
+                    c.execute("INSERT OR IGNORE INTO operation_seq (id, last_num) VALUES (1, ?)", (last_num,))
                 new_num = last_num + 1
                 c.execute("UPDATE operation_seq SET last_num = ? WHERE id = 1", (new_num,))
                 conn.commit()
                 return f"EXP-{new_num:04d}"
-            except sqlite3.OperationalError as op_err:
-                # DB locked o similar; deshacer e intentar de nuevo con backoff
+            except sqlite3.OperationalError:
+                # DB locked or similar; rollback and retry with backoff
                 try:
                     conn.rollback()
                 except Exception:
                     pass
-                # Small linear backoff
+                # Small linear backoff (50ms base * attempt number)
                 time.sleep(0.05 * (attempt + 1))
                 continue
             except Exception:
