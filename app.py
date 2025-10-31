@@ -734,13 +734,13 @@ def generar_idop(conn, retries=5):
                 c.execute("UPDATE operation_seq SET last_num = ? WHERE id = 1", (new_num,))
                 conn.commit()
                 return f"EXP-{new_num:04d}"
-            except sqlite3.OperationalError as op_err:
+            except sqlite3.OperationalError:
                 # DB locked o similar; deshacer e intentar de nuevo con backoff
                 try:
                     conn.rollback()
                 except Exception:
                     pass
-                # Small backoff (exponencial lineal)
+                # Small linear backoff
                 time.sleep(0.05 * (attempt + 1))
                 continue
             except Exception:
