@@ -732,7 +732,7 @@ def generar_idop(conn, retries=5):
                 new_num = last_num + 1
                 c.execute("UPDATE operation_seq SET last_num = ? WHERE id = 1", (new_num,))
                 conn.commit()
-                return f"EXP-{{new_num:04d}}"
+                return f"EXP-{new_num:04d}"
             except sqlite3.OperationalError as op_err:
                 # DB locked o similar; deshacer e intentar de nuevo con backoff
                 try:
@@ -767,7 +767,7 @@ def generar_idop(conn, retries=5):
         new_num = last_num + 1
     else:
         new_num = 1001
-    return f"EXP-{{new_num:04d}}"
+    return f"EXP-{new_num:04d}"
 
 @app.route('/')
 def index():
